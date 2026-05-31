@@ -1,135 +1,101 @@
-import React, { useState, useEffect, useRef } from "react";
-import Navbar from "./components/Layout/Navbar";
-import CheckoutPage from "./pages/CheckoutPage";
-import ReportPage from "./pages/ReportPage";
-import LoginPage from "./pages/LoginPage";
-import CategoryManager from "./pages/CategoryManager";
-import { scanProductByBarcode } from "./services/productService";
-import { processCheckout, getDailyReport } from "./services/saleService";
-import { printReceipt } from "./utils/printUtils"; // Move print logic to a utility file
+import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Sidebar from './components/Layout/Sidebar';
+import TopBar from './components/Layout/TopBar';
+import LoginPage from './pages/LoginPage';
 
-const App = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState(null);
-  const [cart, setCart] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [barcode, setBarcode] = useState("");
-  const [view, setView] = useState("checkout");
-  const [report, setReport] = useState({
-    total_transactions: 0,
-    total_revenue: 0,
-  });
-  const inputRef = useRef(null);
+// Owner pages
+import OwnerDashboard from './pages/owner/OwnerDashboard';
+import BranchManager from './pages/owner/BranchManager';
+import UserManager from './pages/owner/UserManager';
+import OwnerReports from './pages/owner/OwnerReports';
+import OwnerStock from './pages/owner/OwnerStock';
+import DiscountManager from './pages/owner/DiscountManager';
 
-  // Check if user was already logged in on refresh
+// Manager pages
+import ManagerDashboard from './pages/manager/ManagerDashboard';
+import StockManager from './pages/manager/StockManager';
+import ReceiveStock from './pages/manager/ReceiveStock';
+import TransferStock from './pages/manager/TransferStock';
+
+// Cashier pages
+import POSPage from './pages/cashier/POSPage';
+import SalesHistory from './pages/cashier/SalesHistory';
+
+// Shared pages
+import CategoryManager from './pages/shared/CategoryManager';
+
+const DEFAULT_VIEW = {
+  Owner:   'owner-dashboard',
+  Admin:   'owner-dashboard',   // legacy role name fallback
+  Manager: 'manager-dashboard',
+  Cashier: 'pos',
+};
+
+const AppInner = () => {
+  const { user, loading } = useAuth();
+  const [view, setView] = useState(null);
+
+  // Reset view every time the logged-in user changes (login / logout / role switch)
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-      setIsLoggedIn(true);
+    if (user) {
+      setView(DEFAULT_VIEW[user.role] || 'pos');
+    } else {
+      setView(null);   // clear on logout so the next login starts fresh
     }
-  }, []);
+  }, [user?.id, user?.role]); // key on the specific user, not the whole object
 
-  useEffect(() => {
-    if (isLoggedIn && view === "checkout" && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [view, isLoggedIn]);
+  if (loading) return (
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1C1C2E' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 36, marginBottom: 16 }}>👗</div>
+        <div style={{ color: '#E91E63', fontWeight: 800, fontSize: 22 }}>TEEN GIRL</div>
+        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 6 }}>Loading...</div>
+      </div>
+    </div>
+  );
 
-  const handleLoginSuccess = (userData) => {
-    localStorage.setItem("user", JSON.stringify(userData));
-    setUser(userData);
-    setIsLoggedIn(true);
-  };
+  if (!user) return <LoginPage />;
 
-  const handleLogout = () => {
-    localStorage.clear();
-    setIsLoggedIn(false);
-    setUser(null);
-  };
-
-  const fetchReport = async () => {
-    try {
-      const data = await getDailyReport();
-      setReport(data);
-      setView("report");
-    } catch (err) {
-      alert("Error fetching report");
-    }
-  };
-
-  const handleScan = async (e) => {
-    if (e.key === "Enter") {
-      try {
-        const product = await scanProductByBarcode(barcode);
-        if (product) {
-          setCart((prev) => [...prev, product]);
-          setTotal((prev) => prev + parseFloat(product.base_price));
-        }
-        setBarcode("");
-      } catch (err) {
-        alert("Item not found!");
-        setBarcode("");
-      }
+  const renderPage = () => {
+    switch (view) {
+      // Owner
+      case 'owner-dashboard': return <OwnerDashboard />;
+      case 'branches': return <BranchManager />;
+      case 'users': return <UserManager />;
+      case 'owner-reports': return <OwnerReports />;
+      case 'owner-stock': return <OwnerStock />;
+      case 'discounts': return <DiscountManager />;
+      // Manager
+      case 'manager-dashboard': return <ManagerDashboard />;
+      case 'stock-manager': return <StockManager />;
+      case 'receive-stock': return <ReceiveStock />;
+      case 'transfer-stock': return <TransferStock />;
+      case 'manager-reports': return <OwnerReports />;
+      // Cashier
+      case 'pos': return <POSPage />;
+      case 'cashier-history': return <SalesHistory />;
+      // Shared
+      case 'categories': return <CategoryManager />;
+      default: return <div className="page-content"><div className="empty-state"><span className="empty-state-icon">🚧</span><div className="empty-state-text">Page not found</div></div></div>;
     }
   };
-
-  const handleCheckout = async () => {
-    if (cart.length === 0) return alert("Cart is empty!");
-
-    try {
-      const payload = { cart, total, branchId: 1 };
-      const response = await processCheckout(payload);
-
-      if (response.success) {
-        // RESTORED: Print Receipt logic
-        printReceipt({
-          saleId: response.saleId,
-          cart: cart,
-          total: total,
-        });
-
-        alert("✅ Payment Successful! Sale ID: " + response.saleId);
-        setCart([]);
-        setTotal(0);
-      }
-    } catch (err) {
-      alert("❌ Checkout failed");
-    }
-  };
-
-  if (!isLoggedIn) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
-  }
 
   return (
-    <>
-      <Navbar
-        username={user?.username}
-        role={user?.role}
-        setView={setView}
-        onFetchReport={fetchReport}
-        onLogout={handleLogout}
-      />
-
-      {/* 2. Update the Switch Logic */}
-      {view === "checkout" && (
-        <CheckoutPage
-          inputRef={inputRef}
-          barcode={barcode}
-          setBarcode={setBarcode}
-          handleScan={handleScan}
-          cart={cart}
-          total={total}
-          handleCheckout={handleCheckout}
-        />
-      )}
-
-      {view === "report" && <ReportPage report={report} />}
-
-      {view === "categories" && <CategoryManager />}
-    </>
+    <div className="app-shell">
+      <Sidebar currentView={view} setView={setView} />
+      <div className="main-area">
+        <TopBar currentView={view} />
+        {renderPage()}
+      </div>
+    </div>
   );
 };
+
+const App = () => (
+  <AuthProvider>
+    <AppInner />
+  </AuthProvider>
+);
 
 export default App;

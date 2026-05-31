@@ -1,53 +1,103 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification, Menu, Tray, nativeImage, shell } = require('electron');
 const path = require('node:path');
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (require('electron-squirrel-startup')) {
-  app.quit();
-}
+if (require('electron-squirrel-startup')) app.quit();
+
+let mainWindow;
+let tray;
 
 const createWindow = () => {
-  // Create the browser window.
-  const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+  mainWindow = new BrowserWindow({
+    width: 1440,
+    height: 900,
+    minWidth: 1200,
+    minHeight: 700,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
-      webSecurity: false, // <--- TEMPORARILY
+      contextIsolation: true,
+      nodeIntegration: false,
     },
-    title: "Teen Girl POS System",
+    title: 'Teen Girl POS',
+    backgroundColor: '#f5f5f5',
+    show: false,
+    icon: path.join(__dirname, '../assets/icon.png'),
   });
 
-  // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+  mainWindow.setMenuBarVisibility(false);
 
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  mainWindow.once('ready-to-show', () => mainWindow.show());
+
+  mainWindow.on('close', (e) => {
+    e.preventDefault();
+    mainWindow.hide();
+  });
 };
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
+const createTray = () => {
+  const icon = nativeImage.createEmpty();
+  tray = new Tray(icon);
+  const menu = Menu.buildFromTemplate([
+    { label: 'Open Teen Girl POS', click: () => mainWindow.show() },
+    { type: 'separator' },
+    { label: 'Quit', click: () => { mainWindow.destroy(); app.quit(); } },
+  ]);
+  tray.setToolTip('Teen Girl POS System');
+  tray.setContextMenu(menu);
+  tray.on('click', () => mainWindow.show());
+};
+
 app.whenReady().then(() => {
   createWindow();
-
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
+  createTray();
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
+  if (process.platform !== 'darwin') app.quit();
+});
+
+// ── IPC Handlers ──────────────────────────────────────────────────
+
+ipcMain.handle('print-receipt', async (event, receiptHtml) => {
+  const printWin = new BrowserWindow({
+    show: false,
+    width: 400,
+    height: 700,
+    webPreferences: { nodeIntegration: false, contextIsolation: true },
+  });
+  const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Courier New', Courier, monospace; font-size: 12px; width: 72mm; }
+    </style>
+  </head><body>${receiptHtml}</body></html>`;
+
+  await printWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(fullHtml)}`);
+  await new Promise(r => setTimeout(r, 300));
+
+  printWin.webContents.print(
+    { silent: false, printBackground: false, margins: { marginType: 'none' } },
+    () => printWin.close()
+  );
+});
+
+ipcMain.handle('show-notification', (event, { title, body }) => {
+  if (Notification.isSupported()) {
+    new Notification({ title, body }).show();
   }
 });
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
+ipcMain.handle('toggle-fullscreen', () => {
+  mainWindow.setFullScreen(!mainWindow.isFullScreen());
+});
+
+ipcMain.handle('minimize-window', () => mainWindow.minimize());
+
+ipcMain.handle('maximize-window', () => {
+  mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
+});
+
+ipcMain.handle('get-app-version', () => app.getVersion());

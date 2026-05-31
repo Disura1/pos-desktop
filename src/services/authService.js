@@ -1,7 +1,3 @@
-import axios from 'axios';
-
-const API_URL = "http://localhost:5000/api/auth";
-
-export const login = (credentials) => {
-    return axios.post(`${API_URL}/login`, credentials);
-};
+import apiClient from '../api/client';
+export const login = (credentials) => apiClient.post('/auth/login', credentials).then(r => r.data);
+export const changePassword = (data) => apiClient.put('/auth/change-password', data).then(r => r.data);

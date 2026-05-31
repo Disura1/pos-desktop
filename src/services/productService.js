@@ -1,34 +1,9 @@
-import axios from "axios";
-
-const API_URL = "http://localhost:5000/api/products";
-
-export const scanProductByBarcode = async (barcode) => {
-  const res = await axios.get(`${API_URL}/scan/${barcode}`);
-  return res.data;
-};
-
-export const getProductsByCategory = async (catId) => {
-  const res = await axios.get(`${API_URL}/category/${catId}`);
-  return res.data;
-};
-
-export const addProduct = async (data) => {
-  const res = await axios.post(API_URL, data);
-  return res.data;
-};
-
-// ADD THESE TWO FUNCTIONS:
-export const updateProduct = async (id, data) => {
-  const res = await axios.put(`${API_URL}/${id}`, data);
-  return res.data;
-};
-
-export const deleteProduct = async (id) => {
-  const res = await axios.delete(`${API_URL}/${id}`);
-  return res.data;
-};
-
-export const addVariant = async (variantData) => {
-  const res = await axios.post(`${API_URL}/variants`, variantData);
-  return res.data;
-};
+import apiClient from '../api/client';
+export const scanProductByBarcode = (barcode, branchId) => apiClient.get(`/products/scan/${barcode}`, { params: { branchId } }).then(r => r.data);
+export const searchProducts = (q, branchId) => apiClient.get('/products/search', { params: { q, branchId } }).then(r => r.data);
+export const getProductsByCategory = (catId) => apiClient.get(`/products/category/${catId}`).then(r => r.data);
+export const getVariants = (productId) => apiClient.get(`/products/${productId}/variants`).then(r => r.data);
+export const addProduct = (data) => apiClient.post('/products', data).then(r => r.data);
+export const updateProduct = (id, data) => apiClient.put(`/products/${id}`, data).then(r => r.data);
+export const deleteProduct = (id) => apiClient.delete(`/products/${id}`).then(r => r.data);
+export const addVariant = (data) => apiClient.post('/products/variant', data).then(r => r.data);
