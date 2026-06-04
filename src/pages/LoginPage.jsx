@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { login } from '../services/authService';
+import logo from '../assets/logo.png';
 
 const LoginPage = () => {
   const { login: authLogin } = useAuth();
-  const [creds, setCreds] = useState({ username: '', password: '' });
+  const [creds, setCreds]     = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError]     = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,8 +26,20 @@ const LoginPage = () => {
   return (
     <div className="login-page">
       <div className="login-card">
+
         <div className="login-logo">
-          <span className="login-logo-icon">👗</span>
+          <img
+            src={logo}
+            alt="Teen Girl POS"
+            style={{
+              width: 90,
+              height: 90,
+              objectFit: 'contain',
+              display: 'block',
+              margin: '0 auto 12px',
+              borderRadius: '50%',
+            }}
+          />
           <div className="login-logo-name">TEEN GIRL</div>
           <div className="login-logo-sub">Point of Sale System</div>
         </div>
@@ -72,7 +85,7 @@ const LoginPage = () => {
         </form>
 
         <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 24 }}>
-          Teen Girl Boutique · POS v2.0
+          Teen Girl · POS v1.0
         </p>
       </div>
     </div>

@@ -1,8 +1,8 @@
 {
-  "name": "pos-desktop",
-  "productName": "pos-desktop",
+  "name": "teen-girl-pos",
+  "productName": "Teen Girl POS",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "Teen Girl Boutique Point of Sale System",
   "main": ".webpack/main",
   "private": true,
   "scripts": {

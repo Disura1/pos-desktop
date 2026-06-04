@@ -4,6 +4,8 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 module.exports = {
   packagerConfig: {
     asar: true,
+    name: 'Teen Girl POS',
+    icon: './assets/icon',   // no extension — electron-forge picks .ico/.icns/.png automatically
   },
   rebuildConfig: {},
   makers: [

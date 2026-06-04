@@ -20,7 +20,7 @@ const createWindow = () => {
     title: 'Teen Girl POS',
     backgroundColor: '#f5f5f5',
     show: false,
-    icon: path.join(__dirname, '../assets/icon.png'),
+    icon: path.join(__dirname, '../../assets/icon.ico'),
   });
 
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);

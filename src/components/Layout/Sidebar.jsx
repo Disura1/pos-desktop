@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { initials } from '../../utils/formatters';
+import logo from '../../assets/logo.png';
 
 const OWNER_NAV = [
   { label: 'Dashboard',      icon: '📊', view: 'owner-dashboard' },
@@ -42,8 +43,23 @@ const Sidebar = ({ currentView, setView }) => {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <div className="sidebar-brand-name">Teen Girl</div>
-        <div className="sidebar-brand-sub">POS System</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <img
+            src={logo}
+            alt="Teen Girl"
+            style={{
+              width: 38,
+              height: 38,
+              objectFit: 'contain',
+              borderRadius: '50%',
+              flexShrink: 0,
+            }}
+          />
+          <div>
+            <div className="sidebar-brand-name">Teen Girl</div>
+            <div className="sidebar-brand-sub">POS System</div>
+          </div>
+        </div>
       </div>
 
       {user.branchName && (
