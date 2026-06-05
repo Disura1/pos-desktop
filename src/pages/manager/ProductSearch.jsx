@@ -1,6 +1,10 @@
 import React, { useState, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { searchProducts, getVariants } from "../../services/productService";
+import {
+  searchProducts,
+  getVariants,
+  deleteProduct,
+} from "../../services/productService";
 import { fmtCurrency } from "../../utils/formatters";
 
 const ProductSearch = () => {
@@ -11,7 +15,8 @@ const ProductSearch = () => {
   const [results, setResults] = useState([]);
   const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null); // { product_id, name, base_price }
+  const [deleting, setDeleting] = useState(false); // ← tracks delete in progress
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [variants, setVariants] = useState([]);
   const [loadingVariants, setLoadingVariants] = useState(false);
   const [msg, setMsg] = useState({ text: "", type: "success" });
@@ -50,6 +55,52 @@ const ProductSearch = () => {
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") handleSearch();
+  };
+
+  // Delete from search results list
+  const handleDeleteFromResults = async (product) => {
+    if (
+      !window.confirm(
+        `Delete "${product.name}"?\n\nThis will also remove all its variants and stock records.`,
+      )
+    )
+      return;
+    setDeleting(true);
+    try {
+      await deleteProduct(product.product_id);
+      setResults((prev) =>
+        prev.filter((r) => r.product_id !== product.product_id),
+      );
+      showMsg(`"${product.name}" deleted successfully.`);
+    } catch (err) {
+      showMsg(err.response?.data?.error || "Error deleting product", "error");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Delete from detail view
+  const handleDeleteFromDetail = async () => {
+    if (
+      !window.confirm(
+        `Delete "${selectedProduct.name}"?\n\nThis will also remove all its variants and stock records.`,
+      )
+    )
+      return;
+    setDeleting(true);
+    try {
+      await deleteProduct(selectedProduct.product_id);
+      setResults((prev) =>
+        prev.filter((r) => r.product_id !== selectedProduct.product_id),
+      );
+      setSelectedProduct(null);
+      setVariants([]);
+      showMsg(`"${selectedProduct.name}" deleted successfully.`);
+    } catch (err) {
+      showMsg(err.response?.data?.error || "Error deleting product", "error");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   // Group flat search results by product
@@ -100,16 +151,38 @@ const ProductSearch = () => {
 
         {/* Header */}
         <div style={{ marginBottom: 20 }}>
-          <button
-            className="btn btn-ghost btn-sm"
-            style={{ marginBottom: 10 }}
-            onClick={() => {
-              setSelectedProduct(null);
-              setVariants([]);
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
             }}
           >
-            ⬅ Back to Search Results
-          </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ marginBottom: 10 }}
+              onClick={() => {
+                setSelectedProduct(null);
+                setVariants([]);
+              }}
+            >
+              ⬅ Back to Search Results
+            </button>
+            <button
+              className="btn btn-danger btn-sm"
+              disabled={deleting}
+              onClick={handleDeleteFromDetail}
+            >
+              {deleting ? (
+                <>
+                  <span className="spinner" style={{ width: 12, height: 12 }} />{" "}
+                  Deleting...
+                </>
+              ) : (
+                "🗑 Delete Product"
+              )}
+            </button>
+          </div>
           <h2 style={{ margin: 0, fontWeight: 800, fontSize: 20 }}>
             👗 {selectedProduct.name}
           </h2>
@@ -180,7 +253,13 @@ const ProductSearch = () => {
                       <td>
                         {branchStock != null ? (
                           <span
-                            className={`badge ${branchStock.stock_qty === 0 ? "badge-danger" : branchStock.stock_qty <= 5 ? "badge-warning" : "badge-success"}`}
+                            className={`badge ${
+                              branchStock.stock_qty === 0
+                                ? "badge-danger"
+                                : branchStock.stock_qty <= 5
+                                  ? "badge-warning"
+                                  : "badge-success"
+                            }`}
                           >
                             {branchStock.stock_qty}
                           </span>
@@ -267,7 +346,7 @@ const ProductSearch = () => {
         <button
           className="btn btn-primary"
           onClick={handleSearch}
-          disabled={searching || !query.trim()}
+          disabled={searching || deleting || !query.trim()}
           style={{ minWidth: 100 }}
         >
           {searching ? (
@@ -279,6 +358,7 @@ const ProductSearch = () => {
         {searched && (
           <button
             className="btn btn-ghost"
+            disabled={deleting}
             onClick={() => {
               setQuery("");
               setResults([]);
@@ -316,7 +396,7 @@ const ProductSearch = () => {
                   <th>Product Name</th>
                   <th>Base Price</th>
                   <th>Matched Variants</th>
-                  <th>Action</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -348,7 +428,6 @@ const ProductSearch = () => {
                             {v.color ? ` · ${v.color}` : ""}
                             {" — "}
                             <span
-                              className={`${v.stock_qty === 0 ? "" : ""}`}
                               style={{
                                 fontWeight: 700,
                                 color:
@@ -366,12 +445,29 @@ const ProductSearch = () => {
                       </div>
                     </td>
                     <td>
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => openProductDetail(product)}
-                      >
-                        View Details
-                      </button>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button
+                          className="btn btn-primary btn-sm"
+                          disabled={deleting}
+                          onClick={() => openProductDetail(product)}
+                        >
+                          View Details
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          disabled={deleting}
+                          onClick={() => handleDeleteFromResults(product)}
+                        >
+                          {deleting ? (
+                            <span
+                              className="spinner"
+                              style={{ width: 12, height: 12 }}
+                            />
+                          ) : (
+                            "Delete"
+                          )}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -379,6 +475,31 @@ const ProductSearch = () => {
             </table>
           </div>
         </>
+      )}
+
+      {/* Deleting overlay feedback */}
+      {deleting && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius)",
+            padding: "12px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+            zIndex: 9999,
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          <span className="spinner" style={{ width: 16, height: 16 }} />
+          Deleting product...
+        </div>
       )}
     </div>
   );

@@ -1148,6 +1148,34 @@ const CategoryManager = () => {
                         >
                           Edit
                         </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          disabled={saving}
+                          onClick={async () => {
+                            if (
+                              !window.confirm(
+                                `Delete "${item.name}"?\n\nThis will also remove all its variants and stock records.`,
+                              )
+                            )
+                              return;
+                            setSaving(true);
+                            try {
+                              await deleteProduct(item.id);
+                              await loadItems(parentId);
+                              showMsg(`"${item.name}" deleted.`);
+                            } catch (err) {
+                              showMsg(
+                                err.response?.data?.error ||
+                                  "Error deleting product",
+                                "error",
+                              );
+                            } finally {
+                              setSaving(false);
+                            }
+                          }}
+                        >
+                          Delete
+                        </button>
                       </div>
                     </td>
                   </tr>
