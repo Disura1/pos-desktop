@@ -6,4 +6,6 @@ export const getVariants = (productId) => apiClient.get(`/products/${productId}/
 export const addProduct = (data) => apiClient.post('/products', data).then(r => r.data);
 export const updateProduct = (id, data) => apiClient.put(`/products/${id}`, data).then(r => r.data);
 export const deleteProduct = (id) => apiClient.delete(`/products/${id}`).then(r => r.data);
-export const addVariant = (data) => apiClient.post('/products/variant', data).then(r => r.data);
+export const addVariant    = (data)     => apiClient.post('/products/variant', data).then(r => r.data);
+export const updateVariant = (id, data) => apiClient.put(`/products/variant/${id}`, data).then(r => r.data);
+export const deleteVariant = (id)       => apiClient.delete(`/products/variant/${id}`).then(r => r.data);
