@@ -7,6 +7,52 @@ import {
 } from "../../services/productService";
 import { fmtCurrency } from "../../utils/formatters";
 
+// ── Non-blocking confirm dialog (replaces window.confirm) ──────────────────
+const ConfirmDialog = ({ message, onConfirm, onCancel }) => (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.55)",
+      zIndex: 10000,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+  >
+    <div
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius)",
+        padding: "28px 32px",
+        maxWidth: 400,
+        width: "90%",
+        boxShadow: "0 8px 40px rgba(0,0,0,0.4)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 15,
+          fontWeight: 600,
+          marginBottom: 20,
+          lineHeight: 1.5,
+        }}
+      >
+        {message}
+      </div>
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+        <button className="btn btn-secondary" onClick={onCancel}>
+          Cancel
+        </button>
+        <button className="btn btn-danger" onClick={onConfirm}>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 const ProductSearch = () => {
   const { user } = useAuth();
   const branchId = user?.branchId || null;
@@ -15,17 +61,34 @@ const ProductSearch = () => {
   const [results, setResults] = useState([]);
   const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
-  const [deleting, setDeleting] = useState(false); // ← tracks delete in progress
+  const [deleting, setDeleting] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [variants, setVariants] = useState([]);
   const [loadingVariants, setLoadingVariants] = useState(false);
   const [msg, setMsg] = useState({ text: "", type: "success" });
+  const [confirmDialog, setConfirmDialog] = useState(null); // { message, onConfirm }
   const inputRef = useRef(null);
 
   const showMsg = (text, type = "success") => {
     setMsg({ text, type });
     setTimeout(() => setMsg({ text: "", type: "success" }), 3500);
   };
+
+  // Non-blocking confirm — returns a Promise that resolves true/false
+  const confirm = (message) =>
+    new Promise((resolve) => {
+      setConfirmDialog({
+        message,
+        onConfirm: () => {
+          setConfirmDialog(null);
+          resolve(true);
+        },
+        onCancel: () => {
+          setConfirmDialog(null);
+          resolve(false);
+        },
+      });
+    });
 
   const handleSearch = async () => {
     const q = query.trim();
@@ -57,14 +120,11 @@ const ProductSearch = () => {
     if (e.key === "Enter") handleSearch();
   };
 
-  // Delete from search results list
   const handleDeleteFromResults = async (product) => {
-    if (
-      !window.confirm(
-        `Delete "${product.name}"?\n\nThis will also remove all its variants and stock records.`,
-      )
-    )
-      return;
+    const ok = await confirm(
+      `Delete "${product.name}"?\n\nThis will also remove all its variants and stock records.`,
+    );
+    if (!ok) return;
     setDeleting(true);
     try {
       await deleteProduct(product.product_id);
@@ -79,14 +139,11 @@ const ProductSearch = () => {
     }
   };
 
-  // Delete from detail view
   const handleDeleteFromDetail = async () => {
-    if (
-      !window.confirm(
-        `Delete "${selectedProduct.name}"?\n\nThis will also remove all its variants and stock records.`,
-      )
-    )
-      return;
+    const ok = await confirm(
+      `Delete "${selectedProduct.name}"?\n\nThis will also remove all its variants and stock records.`,
+    );
+    if (!ok) return;
     setDeleting(true);
     try {
       await deleteProduct(selectedProduct.product_id);
@@ -103,7 +160,6 @@ const ProductSearch = () => {
     }
   };
 
-  // Group flat search results by product
   const groupedProducts = results.reduce((acc, row) => {
     if (!acc[row.product_id]) {
       acc[row.product_id] = {
@@ -140,6 +196,8 @@ const ProductSearch = () => {
   if (selectedProduct) {
     return (
       <div className="page-content">
+        {confirmDialog && <ConfirmDialog {...confirmDialog} />}
+
         {msg.text && (
           <div
             className={`alert alert-${msg.type === "error" ? "danger" : "success"}`}
@@ -149,7 +207,6 @@ const ProductSearch = () => {
           </div>
         )}
 
-        {/* Header */}
         <div style={{ marginBottom: 20 }}>
           <div
             style={{
@@ -192,7 +249,6 @@ const ProductSearch = () => {
           </div>
         </div>
 
-        {/* Variants Table */}
         {loadingVariants ? (
           <div style={{ textAlign: "center", padding: 40 }}>
             <span className="spinner" style={{ width: 28, height: 28 }} />
@@ -222,7 +278,6 @@ const ProductSearch = () => {
                         0,
                       )
                     : 0;
-
                   return (
                     <tr key={v.id}>
                       <td
@@ -320,6 +375,8 @@ const ProductSearch = () => {
   // ── Search view ────────────────────────────────────────────────────────────
   return (
     <div className="page-content">
+      {confirmDialog && <ConfirmDialog {...confirmDialog} />}
+
       {msg.text && (
         <div
           className={`alert alert-${msg.type === "error" ? "danger" : "success"}`}
@@ -329,7 +386,6 @@ const ProductSearch = () => {
         </div>
       )}
 
-      {/* Search Bar */}
       <div
         style={{ display: "flex", gap: 10, marginBottom: 24, maxWidth: 600 }}
       >
@@ -371,7 +427,6 @@ const ProductSearch = () => {
         )}
       </div>
 
-      {/* Results */}
       {!searched && !searching && (
         <div className="empty-state">
           <span className="empty-state-icon">🔍</span>
@@ -475,31 +530,6 @@ const ProductSearch = () => {
             </table>
           </div>
         </>
-      )}
-
-      {/* Deleting overlay feedback */}
-      {deleting && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 24,
-            right: 24,
-            background: "var(--card)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--radius)",
-            padding: "12px 20px",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-            zIndex: 9999,
-            fontSize: 13,
-            fontWeight: 600,
-          }}
-        >
-          <span className="spinner" style={{ width: 16, height: 16 }} />
-          Deleting product...
-        </div>
       )}
     </div>
   );

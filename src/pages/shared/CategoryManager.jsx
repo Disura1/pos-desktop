@@ -17,6 +17,52 @@ import {
 } from "../../services/productService";
 import { fmtCurrency } from "../../utils/formatters";
 
+const ConfirmDialog = ({ message, onConfirm, onCancel }) => (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.55)",
+      zIndex: 10000,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+  >
+    <div
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius)",
+        padding: "28px 32px",
+        maxWidth: 400,
+        width: "90%",
+        boxShadow: "0 8px 40px rgba(0,0,0,0.4)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 15,
+          fontWeight: 600,
+          marginBottom: 20,
+          lineHeight: 1.5,
+          whiteSpace: "pre-line",
+        }}
+      >
+        {message}
+      </div>
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+        <button className="btn btn-secondary" onClick={onCancel}>
+          Cancel
+        </button>
+        <button className="btn btn-danger" onClick={onConfirm}>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 const CategoryManager = () => {
   const [allCats, setAllCats] = useState([]);
   const [items, setItems] = useState([]);
@@ -46,6 +92,23 @@ const CategoryManager = () => {
   const [skuEditAutoMode, setSkuEditAutoMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState({ text: "", type: "success" });
+
+  const [confirmDialog, setConfirmDialog] = useState(null);
+
+  const confirm = (message) =>
+    new Promise((resolve) => {
+      setConfirmDialog({
+        message,
+        onConfirm: () => {
+          setConfirmDialog(null);
+          resolve(true);
+        },
+        onCancel: () => {
+          setConfirmDialog(null);
+          resolve(false);
+        },
+      });
+    });
 
   const showMsg = (text, type = "success") => {
     setMsg({ text, type });
@@ -229,12 +292,10 @@ const CategoryManager = () => {
   };
 
   const handleDeleteVariant = async (variantId, sku) => {
-    if (
-      !window.confirm(
-        `Delete variant "${sku}"? This will also remove its stock records.`,
-      )
-    )
-      return;
+    const ok = await confirm(
+      `Delete variant "${sku}"? This will also remove its stock records.`,
+    );
+    if (!ok) return;
     setSaving(true);
     try {
       await deleteVariant(variantId);
@@ -288,6 +349,7 @@ const CategoryManager = () => {
   if (selectedProduct) {
     return (
       <div className="page-content">
+        {confirmDialog && <ConfirmDialog {...confirmDialog} />}
         {/* Message bar */}
         {msg.text && (
           <div
@@ -910,6 +972,7 @@ const CategoryManager = () => {
   // ─── Main category/product view ───────────────────────────────────────────
   return (
     <div className="page-content">
+      {confirmDialog && <ConfirmDialog {...confirmDialog} />}
       {msg.text && (
         <div
           className={`alert alert-${msg.type === "error" ? "danger" : "success"}`}
@@ -1079,8 +1142,9 @@ const CategoryManager = () => {
                   className="btn btn-danger btn-sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (window.confirm("Delete this folder?"))
-                      deleteCategory(cat.id).then(loadCategories);
+                    confirm("Delete this folder?").then((ok) => {
+                      if (ok) deleteCategory(cat.id).then(loadCategories);
+                    });
                   }}
                 >
                   Delete
@@ -1152,12 +1216,10 @@ const CategoryManager = () => {
                           className="btn btn-danger btn-sm"
                           disabled={saving}
                           onClick={async () => {
-                            if (
-                              !window.confirm(
-                                `Delete "${item.name}"?\n\nThis will also remove all its variants and stock records.`,
-                              )
-                            )
-                              return;
+                            const ok = await confirm(
+                              `Delete "${item.name}"?\n\nThis will also remove all its variants and stock records.`,
+                            );
+                            if (!ok) return;
                             setSaving(true);
                             try {
                               await deleteProduct(item.id);
