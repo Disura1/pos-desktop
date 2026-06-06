@@ -744,11 +744,14 @@ const ManagerAddVariantModal = ({
 const CategoryManager = () => {
   const { user } = useAuth();
   const isManager = user?.role === "Manager";
+  const isOwner = user?.role === "Owner" || user?.role === "Admin";
 
   const [allCats, setAllCats] = useState([]);
   const [items, setItems] = useState([]);
   const [variants, setVariants] = useState([]);
   const [parentId, setParentId] = useState(null);
+  const [branches, setBranches] = useState([]);
+  const [selectedBranchId, setSelectedBranchId] = useState(null); // owner filter
 
   // Modals
   const [showCatModal, setShowCatModal] = useState(false);
@@ -769,7 +772,7 @@ const CategoryManager = () => {
   const [editingVariant, setEditingVariant] = useState(null);
   const [skuEditAutoMode, setSkuEditAutoMode] = useState(false);
 
-  // Owner-only add variant form state (old way)
+  // Owner-only add variant form state (old way — kept for owner)
   const [variantData, setVariantData] = useState({
     sku: "",
     size: "",
@@ -809,6 +812,18 @@ const CategoryManager = () => {
       ? getProductsByCategory(id).then((d) => setItems(d || []))
       : setItems([]);
 
+  // Load branches for owner filter
+  useEffect(() => {
+    if (!isOwner) return;
+    import("../../services/branchService").then(({ getBranches }) => {
+      getBranches().then((b) => {
+        const active = (b || []).filter((x) => x.is_active);
+        setBranches(active);
+        if (active.length > 0) setSelectedBranchId(active[0].id);
+      });
+    });
+  }, [isOwner]);
+
   useEffect(() => {
     loadCategories();
   }, []);
@@ -816,7 +831,7 @@ const CategoryManager = () => {
     loadItems(parentId);
   }, [parentId]);
 
-  // ── Owner SKU auto (old way) ──
+  // ── Manager SKU auto ──
   useEffect(() => {
     if (!skuAutoMode || !selectedProduct) return;
     const generated = computeSKU(
@@ -882,7 +897,6 @@ const CategoryManager = () => {
     }
   };
 
-  // Owner-only: add variant (old way)
   const handleSaveVariant = async () => {
     if (!variantData.sku || !variantData.barcode) {
       showMsg("SKU and Barcode are required", "error");
@@ -997,10 +1011,77 @@ const CategoryManager = () => {
   };
   const breadcrumb = buildBreadcrumb();
 
+  // ── Branch filter bar (owner only) ──
+  const BranchFilterBar = () => {
+    if (!isOwner || branches.length === 0) return null;
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          background: "var(--card)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius)",
+          padding: "10px 16px",
+          marginBottom: 18,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: "var(--text-sub)",
+            flexShrink: 0,
+          }}
+        >
+          🏪 Viewing branch:
+        </span>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {branches.map((b) => (
+            <button
+              key={b.id}
+              onClick={() => setSelectedBranchId(b.id)}
+              style={{
+                padding: "5px 14px",
+                fontSize: 12,
+                fontWeight: 600,
+                border: `2px solid ${selectedBranchId === b.id ? "var(--pink)" : "var(--border)"}`,
+                borderRadius: "var(--radius-sm)",
+                cursor: "pointer",
+                background:
+                  selectedBranchId === b.id
+                    ? "var(--pink-light)"
+                    : "var(--card)",
+                color:
+                  selectedBranchId === b.id
+                    ? "var(--pink-dark)"
+                    : "var(--text-sub)",
+                transition: "all 0.12s",
+              }}
+            >
+              {b.branch_name}
+            </button>
+          ))}
+        </div>
+        <div
+          style={{
+            marginLeft: "auto",
+            fontSize: 11,
+            color: "var(--text-muted)",
+            fontStyle: "italic",
+          }}
+        ></div>
+      </div>
+    );
+  };
+
   // ══════════════════════════════════════════════════════════════════════
-  // VARIANT PAGE (shared — same for both roles)
+  // VARIANT PAGE
   // ══════════════════════════════════════════════════════════════════════
   if (selectedProduct) {
+    const selectedBranch = branches.find((b) => b.id === selectedBranchId);
+
     return (
       <div className="page-content">
         {confirmDialog && <ConfirmDialog {...confirmDialog} />}
@@ -1013,6 +1094,9 @@ const CategoryManager = () => {
             {msg.text}
           </div>
         )}
+
+        {/* Branch filter bar — owner only */}
+        {isOwner && <BranchFilterBar />}
 
         {/* Header */}
         <div
@@ -1135,16 +1219,29 @@ const CategoryManager = () => {
               style={{ color: "var(--text-sub)", fontSize: 13, marginTop: 3 }}
             >
               Base Price: {fmtCurrency(selectedProduct.base_price)}
+              {isOwner && selectedBranch && (
+                <span
+                  style={{
+                    marginLeft: 12,
+                    color: "var(--pink)",
+                    fontWeight: 600,
+                  }}
+                >
+                  📍 {selectedBranch.branch_name}
+                </span>
+              )}
             </div>
           </div>
-          <button
-            className="btn btn-primary"
-            onClick={() =>
-              isManager ? setShowAddVariantModal(true) : openAddVariantModal()
-            }
-          >
-            + Add Variant
-          </button>
+
+          {/* Add variant button — manager only */}
+          {isManager && (
+            <button
+              className="btn btn-primary"
+              onClick={() => setShowAddVariantModal(true)}
+            >
+              + Add Variant
+            </button>
+          )}
         </div>
 
         {/* Variants Table */}
@@ -1157,13 +1254,26 @@ const CategoryManager = () => {
                 <th>Size</th>
                 <th>Color</th>
                 <th>Variant Price</th>
-                <th>Stock</th>
-                <th>Actions</th>
+                {/* Owner: show selected branch stock only */}
+                {isOwner && (
+                  <th>Stock ({selectedBranch?.branch_name || "—"})</th>
+                )}
+                {/* Manager: show all branches stock */}
+                {isManager && <th>Stock (All Branches)</th>}
+                {/* Manager only: actions column */}
+                {isManager && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
-              {variants.map((v) =>
-                editingVariant?.id === v.id ? (
+              {variants.map((v) => {
+                // For owner — find stock for selected branch
+                const branchStock =
+                  isOwner && Array.isArray(v.stock)
+                    ? v.stock.find((s) => s.branch_id === selectedBranchId)
+                    : null;
+
+                return editingVariant?.id === v.id ? (
+                  /* ── Inline edit row (manager only) ── */
                   <tr key={v.id} style={{ background: "rgba(233,30,99,0.04)" }}>
                     <td style={{ minWidth: 170 }}>
                       <div
@@ -1330,6 +1440,7 @@ const CategoryManager = () => {
                     </td>
                   </tr>
                 ) : (
+                  /* ── Normal display row ── */
                   <tr key={v.id}>
                     <td
                       style={{
@@ -1345,7 +1456,7 @@ const CategoryManager = () => {
                     </td>
                     <td>{v.size || "—"}</td>
                     <td>{v.color || "—"}</td>
-                    <td>
+                    <td style={{ fontWeight: 700 }}>
                       {v.variant_price ? (
                         fmtCurrency(v.variant_price)
                       ) : (
@@ -1356,56 +1467,89 @@ const CategoryManager = () => {
                         </span>
                       )}
                     </td>
-                    <td style={{ fontSize: 11 }}>
-                      {Array.isArray(v.stock)
-                        ? v.stock.map((s) => (
-                            <div key={s.branch_id}>
-                              {s.branch_name}: <strong>{s.stock_qty}</strong>
-                            </div>
-                          ))
-                        : "—"}
-                    </td>
-                    <td>
-                      <div style={{ display: "flex", gap: 4 }}>
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() => {
-                            setEditingVariant({
-                              ...v,
-                              variant_price: v.variant_price || "",
-                            });
-                            setSkuEditAutoMode(false);
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDeleteVariant(v.id, v.sku)}
-                          disabled={saving}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
+
+                    {/* Owner: show selected branch stock only */}
+                    {isOwner && (
+                      <td>
+                        {branchStock != null ? (
+                          <span
+                            className={`badge ${
+                              branchStock.stock_qty === 0
+                                ? "badge-danger"
+                                : branchStock.stock_qty <= 5
+                                  ? "badge-warning"
+                                  : "badge-success"
+                            }`}
+                          >
+                            {branchStock.stock_qty}
+                          </span>
+                        ) : (
+                          <span
+                            style={{ color: "var(--text-muted)", fontSize: 12 }}
+                          >
+                            —
+                          </span>
+                        )}
+                      </td>
+                    )}
+
+                    {/* Manager: show all branches */}
+                    {isManager && (
+                      <td style={{ fontSize: 11 }}>
+                        {Array.isArray(v.stock)
+                          ? v.stock.map((s) => (
+                              <div key={s.branch_id}>
+                                {s.branch_name}: <strong>{s.stock_qty}</strong>
+                              </div>
+                            ))
+                          : "—"}
+                      </td>
+                    )}
+
+                    {/* Manager only: action buttons */}
+                    {isManager && (
+                      <td>
+                        <div style={{ display: "flex", gap: 4 }}>
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() => {
+                              setEditingVariant({
+                                ...v,
+                                variant_price: v.variant_price || "",
+                              });
+                              setSkuEditAutoMode(false);
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleDeleteVariant(v.id, v.sku)}
+                            disabled={saving}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
-                ),
-              )}
+                );
+              })}
             </tbody>
           </table>
           {variants.length === 0 && (
             <div className="empty-state">
               <span className="empty-state-icon">⚙️</span>
               <div className="empty-state-text">
-                No variants yet — click "+ Add Variant" to create one
+                {isOwner
+                  ? "No variants for this product"
+                  : 'No variants yet — click "+ Add Variant" to create one'}
               </div>
             </div>
           )}
         </div>
 
-        {/* ── Add Variant Modal ──
-            Manager → new way (auto SKU + auto barcode)
-            Owner   → old way (manual fields) */}
+        {/* Add Variant Modal — Manager only */}
         {showAddVariantModal && isManager && (
           <ManagerAddVariantModal
             product={selectedProduct}
@@ -1417,206 +1561,6 @@ const CategoryManager = () => {
             onClose={() => setShowAddVariantModal(false)}
             showMsg={showMsg}
           />
-        )}
-
-        {showAddVariantModal && !isManager && (
-          <div
-            className="modal-overlay"
-            onClick={(e) =>
-              e.target === e.currentTarget && setShowAddVariantModal(false)
-            }
-          >
-            <div className="modal">
-              <div className="modal-title">
-                + Add Variant — {selectedProduct.name}
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Size</label>
-                  <input
-                    className="form-control"
-                    value={variantData.size}
-                    onChange={(e) =>
-                      setVariantData((prev) => ({
-                        ...prev,
-                        size: e.target.value,
-                      }))
-                    }
-                    placeholder="XS / S / M / L / XL"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Color</label>
-                  <input
-                    className="form-control"
-                    value={variantData.color}
-                    onChange={(e) =>
-                      setVariantData((prev) => ({
-                        ...prev,
-                        color: e.target.value,
-                      }))
-                    }
-                    placeholder="Black / White / Red..."
-                  />
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label
-                    className="form-label"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <span>SKU *</span>
-                    <span
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
-                    >
-                      {skuAutoMode ? (
-                        <span
-                          style={{
-                            fontSize: 10,
-                            background: "var(--success-bg)",
-                            color: "var(--success)",
-                            padding: "2px 7px",
-                            borderRadius: 10,
-                            fontWeight: 700,
-                          }}
-                        >
-                          AUTO
-                        </span>
-                      ) : (
-                        <span
-                          style={{
-                            fontSize: 10,
-                            background: "var(--border)",
-                            color: "var(--text-sub)",
-                            padding: "2px 7px",
-                            borderRadius: 10,
-                            fontWeight: 700,
-                          }}
-                        >
-                          MANUAL
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setSkuAutoMode(true)}
-                        style={{
-                          fontSize: 11,
-                          background: "none",
-                          border: "1px solid var(--border)",
-                          borderRadius: 4,
-                          padding: "1px 7px",
-                          cursor: "pointer",
-                          color: "var(--text-sub)",
-                        }}
-                      >
-                        🔄 Auto
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSkuAutoMode(false)}
-                        style={{
-                          fontSize: 11,
-                          background: "none",
-                          border: "1px solid var(--border)",
-                          borderRadius: 4,
-                          padding: "1px 7px",
-                          cursor: "pointer",
-                          color: "var(--text-sub)",
-                        }}
-                      >
-                        ✏️ Manual
-                      </button>
-                    </span>
-                  </label>
-                  <input
-                    className="form-control"
-                    value={variantData.sku}
-                    readOnly={skuAutoMode}
-                    onChange={(e) => {
-                      setSkuAutoMode(false);
-                      setVariantData((prev) => ({
-                        ...prev,
-                        sku: e.target.value,
-                      }));
-                    }}
-                    placeholder={
-                      skuAutoMode ? "Auto-generated" : "Type SKU manually"
-                    }
-                    style={{
-                      fontFamily: "monospace",
-                      letterSpacing: 0.5,
-                      background: skuAutoMode
-                        ? "var(--input-disabled, rgba(255,255,255,0.04))"
-                        : undefined,
-                    }}
-                  />
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: "var(--text-muted)",
-                      marginTop: 4,
-                    }}
-                  >
-                    {skuAutoMode
-                      ? `Generated: "${variantData.sku || "(type size/color above)"}"`
-                      : "Manual mode"}
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Barcode *</label>
-                  <input
-                    className="form-control"
-                    value={variantData.barcode}
-                    onChange={(e) =>
-                      setVariantData({
-                        ...variantData,
-                        barcode: e.target.value,
-                      })
-                    }
-                    placeholder="Scan or enter barcode"
-                  />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">
-                  Variant Price (leave blank to use base price)
-                </label>
-                <input
-                  className="form-control"
-                  type="number"
-                  step="0.01"
-                  value={variantData.variant_price}
-                  onChange={(e) =>
-                    setVariantData({
-                      ...variantData,
-                      variant_price: e.target.value,
-                    })
-                  }
-                  placeholder="Optional override price"
-                />
-              </div>
-              <div className="modal-footer">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setShowAddVariantModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="btn btn-primary"
-                  onClick={handleSaveVariant}
-                  disabled={saving}
-                >
-                  {saving ? <span className="spinner" /> : "+ Add Variant"}
-                </button>
-              </div>
-            </div>
-          </div>
         )}
       </div>
     );
@@ -1637,6 +1581,9 @@ const CategoryManager = () => {
           {msg.text}
         </div>
       )}
+
+      {/* Branch filter bar — owner only */}
+      {isOwner && <BranchFilterBar />}
 
       {/* Header */}
       <div
@@ -1715,34 +1662,25 @@ const CategoryManager = () => {
             </button>
           )}
         </div>
+
+        {/* Action buttons — manager only (owner has no add/edit/delete) */}
         <div style={{ display: "flex", gap: 10 }}>
-          <button
-            className="btn btn-outline"
-            onClick={() => {
-              setEditMode(false);
-              setCatData({ id: null, name: "" });
-              setShowCatModal(true);
-            }}
-          >
-            + New Folder
-          </button>
-          {parentId && (
+          {isManager && (
+            <button
+              className="btn btn-outline"
+              onClick={() => {
+                setEditMode(false);
+                setCatData({ id: null, name: "" });
+                setShowCatModal(true);
+              }}
+            >
+              + New Folder
+            </button>
+          )}
+          {isManager && parentId && (
             <button
               className="btn btn-primary"
-              onClick={() => {
-                if (isManager) {
-                  setShowManagerAddProduct(true);
-                } else {
-                  setEditMode(false);
-                  setItemData({
-                    id: null,
-                    name: "",
-                    base_price: "",
-                    description: "",
-                  });
-                  setShowItemModal(true);
-                }
-              }}
+              onClick={() => setShowManagerAddProduct(true)}
             >
               + Add Product
             </button>
@@ -1784,32 +1722,36 @@ const CategoryManager = () => {
               >
                 {cat.name}
               </div>
-              <div
-                style={{ display: "flex", gap: 6, justifyContent: "center" }}
-              >
-                <button
-                  className="btn btn-outline btn-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCatData({ id: cat.id, name: cat.name });
-                    setEditMode(true);
-                    setShowCatModal(true);
-                  }}
+
+              {/* Edit/Delete only for manager */}
+              {isManager && (
+                <div
+                  style={{ display: "flex", gap: 6, justifyContent: "center" }}
                 >
-                  Edit
-                </button>
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    confirm("Delete this folder?").then((ok) => {
-                      if (ok) deleteCategory(cat.id).then(loadCategories);
-                    });
-                  }}
-                >
-                  Delete
-                </button>
-              </div>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCatData({ id: cat.id, name: cat.name });
+                      setEditMode(true);
+                      setShowCatModal(true);
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      confirm("Delete this folder?").then((ok) => {
+                        if (ok) deleteCategory(cat.id).then(loadCategories);
+                      });
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -1851,53 +1793,60 @@ const CategoryManager = () => {
                     </td>
                     <td>
                       <div style={{ display: "flex", gap: 6 }}>
+                        {/* View variants — both owner and manager */}
                         <button
                           className="btn btn-primary btn-sm"
                           onClick={() => openVariantsPage(item)}
                         >
                           Variants
                         </button>
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() => {
-                            setItemData({
-                              id: item.id,
-                              name: item.name || "",
-                              base_price: item.base_price || "",
-                              description: item.description || "",
-                            });
-                            setEditMode(true);
-                            setShowItemModal(true);
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="btn btn-danger btn-sm"
-                          disabled={saving}
-                          onClick={async () => {
-                            const ok = await confirm(
-                              `Delete "${item.name}"?\n\nThis will also remove all its variants and stock records.`,
-                            );
-                            if (!ok) return;
-                            setSaving(true);
-                            try {
-                              await deleteProduct(item.id);
-                              await loadItems(parentId);
-                              showMsg(`"${item.name}" deleted.`);
-                            } catch (err) {
-                              showMsg(
-                                err.response?.data?.error ||
-                                  "Error deleting product",
-                                "error",
-                              );
-                            } finally {
-                              setSaving(false);
-                            }
-                          }}
-                        >
-                          Delete
-                        </button>
+
+                        {/* Edit / Delete — manager only */}
+                        {isManager && (
+                          <>
+                            <button
+                              className="btn btn-outline btn-sm"
+                              onClick={() => {
+                                setItemData({
+                                  id: item.id,
+                                  name: item.name || "",
+                                  base_price: item.base_price || "",
+                                  description: item.description || "",
+                                });
+                                setEditMode(true);
+                                setShowItemModal(true);
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="btn btn-danger btn-sm"
+                              disabled={saving}
+                              onClick={async () => {
+                                const ok = await confirm(
+                                  `Delete "${item.name}"?\n\nThis will also remove all its variants and stock records.`,
+                                );
+                                if (!ok) return;
+                                setSaving(true);
+                                try {
+                                  await deleteProduct(item.id);
+                                  await loadItems(parentId);
+                                  showMsg(`"${item.name}" deleted.`);
+                                } catch (err) {
+                                  showMsg(
+                                    err.response?.data?.error ||
+                                      "Error deleting product",
+                                    "error",
+                                  );
+                                } finally {
+                                  setSaving(false);
+                                }
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1916,8 +1865,8 @@ const CategoryManager = () => {
         </>
       )}
 
-      {/* ── Category Modal ── */}
-      {showCatModal && (
+      {/* ── Category Modal (manager only) ── */}
+      {showCatModal && isManager && (
         <div
           className="modal-overlay"
           onClick={(e) =>
@@ -1959,71 +1908,7 @@ const CategoryManager = () => {
         </div>
       )}
 
-      {/* ── Owner: Product Modal (old way) ── */}
-      {showItemModal && !isManager && (
-        <div
-          className="modal-overlay"
-          onClick={(e) =>
-            e.target === e.currentTarget && setShowItemModal(false)
-          }
-        >
-          <div className="modal">
-            <div className="modal-title">
-              {editMode ? "✏️ Edit Product" : "👗 New Product"}
-            </div>
-            <div className="form-group">
-              <label className="form-label">Product Name *</label>
-              <input
-                className="form-control"
-                value={itemData.name}
-                onChange={(e) =>
-                  setItemData({ ...itemData, name: e.target.value })
-                }
-                autoFocus
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Base Price (LKR) *</label>
-              <input
-                className="form-control"
-                type="number"
-                step="0.01"
-                value={itemData.base_price}
-                onChange={(e) =>
-                  setItemData({ ...itemData, base_price: e.target.value })
-                }
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Description</label>
-              <textarea
-                className="form-control"
-                value={itemData.description}
-                onChange={(e) =>
-                  setItemData({ ...itemData, description: e.target.value })
-                }
-              />
-            </div>
-            <div className="modal-footer">
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowItemModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleSaveItem}
-                disabled={saving}
-              >
-                {saving ? <span className="spinner" /> : "Save Product"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Owner: Edit Product Modal ── */}
+      {/* ── Manager: Edit Product Modal ── */}
       {showItemModal && isManager && (
         <div
           className="modal-overlay"
@@ -2085,7 +1970,7 @@ const CategoryManager = () => {
         </div>
       )}
 
-      {/* ── Manager: Add Product (new way — product + first variant in one form) ── */}
+      {/* ── Manager: Add Product (new way) ── */}
       {showManagerAddProduct && isManager && (
         <ManagerAddProductModal
           categoryId={parentId}
