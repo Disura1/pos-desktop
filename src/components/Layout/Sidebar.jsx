@@ -20,7 +20,7 @@ const MANAGER_NAV = [
   { label: "Transfer Stock", icon: "🔄", view: "transfer-stock" },
   { label: "Reports", icon: "📈", view: "manager-reports" },
   { label: "Product Search", icon: "🔍", view: "product-search" },
-  { label: 'Print Labels',   icon: '🏷️', view: 'label-printer'    },
+  { label: "Print Labels", icon: "🏷️", view: "label-printer" },
   { label: "Products", icon: "👗", view: "categories" },
 ];
 
@@ -64,7 +64,7 @@ const Sidebar = ({ currentView, setView }) => {
         </div>
       </div>
 
-      {user.branchName && (
+      {user.branchName && user.role !== "Owner" && user.role !== "Admin" && (
         <div className="sidebar-branch-tag">📍 {user.branchName}</div>
       )}
 
