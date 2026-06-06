@@ -18,6 +18,7 @@ import StockManager from "./pages/manager/StockManager";
 import ReceiveStock from "./pages/manager/ReceiveStock";
 import TransferStock from "./pages/manager/TransferStock";
 import ProductSearch from "./pages/manager/ProductSearch";
+import LabelPrinter from './pages/manager/LabelPrinter';
 
 // Cashier pages
 import POSPage from "./pages/cashier/POSPage";
@@ -105,6 +106,8 @@ const AppInner = () => {
         return <OwnerReports />;
       case "product-search":
         return <ProductSearch />;
+      case "label-printer":
+        return <LabelPrinter />;
       // Cashier
       case "pos":
         return <POSPage />;

@@ -20,6 +20,7 @@ const MANAGER_NAV = [
   { label: "Transfer Stock", icon: "🔄", view: "transfer-stock" },
   { label: "Reports", icon: "📈", view: "manager-reports" },
   { label: "Product Search", icon: "🔍", view: "product-search" },
+  { label: 'Print Labels',   icon: '🏷️', view: 'label-printer'    },
   { label: "Products", icon: "👗", view: "categories" },
 ];
 
