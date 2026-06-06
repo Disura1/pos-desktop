@@ -113,6 +113,12 @@ const UserManager = () => {
     Cashier: "badge-success",
   };
 
+  // Derive selected role name from form.role_id
+  const selectedRoleName =
+    roles.find((r) => String(r.id) === String(form.role_id))?.role_name || "";
+  const isOwnerRole =
+    selectedRoleName === "Owner" || selectedRoleName === "Admin";
+
   const filtered = users.filter((u) =>
     `${u.username} ${u.full_name} ${u.role_name}`
       .toLowerCase()
@@ -295,9 +301,19 @@ const UserManager = () => {
                 <select
                   className="form-control"
                   value={form.role_id}
-                  onChange={(e) =>
-                    setForm({ ...form, role_id: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const selectedRole = roles.find(
+                      (r) => String(r.id) === String(e.target.value),
+                    );
+                    const isOwner =
+                      selectedRole?.role_name === "Owner" ||
+                      selectedRole?.role_name === "Admin";
+                    setForm({
+                      ...form,
+                      role_id: e.target.value,
+                      branch_id: isOwner ? "" : form.branch_id,
+                    });
+                  }}
                 >
                   <option value="">Select role</option>
                   {roles.map((r) => (
@@ -307,23 +323,41 @@ const UserManager = () => {
                   ))}
                 </select>
               </div>
-              <div className="form-group">
-                <label className="form-label">Branch</label>
-                <select
-                  className="form-control"
-                  value={form.branch_id}
-                  onChange={(e) =>
-                    setForm({ ...form, branch_id: e.target.value })
-                  }
-                >
-                  <option value="">All / None</option>
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.branch_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!isOwnerRole && (
+                <div className="form-group">
+                  <label className="form-label">Branch *</label>
+                  <select
+                    className="form-control"
+                    value={form.branch_id}
+                    onChange={(e) =>
+                      setForm({ ...form, branch_id: e.target.value })
+                    }
+                  >
+                    <option value="">Select branch</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.branch_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {isOwnerRole && (
+                <div className="form-group">
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      background: "var(--pink-light)",
+                      borderRadius: "var(--radius-sm)",
+                      fontSize: 12,
+                      color: "var(--pink-dark)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    🏪 Owner has access to all branches
+                  </div>
+                </div>
+              )}
             </div>
             {editUser && (
               <div className="form-group">
