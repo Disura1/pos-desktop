@@ -9,12 +9,14 @@ import {
 import {
   addProduct,
   getProductsByCategory,
+  getProductsByCategoryAndBranch,
   deleteProduct,
   updateProduct,
   addVariant,
   updateVariant,
   deleteVariant,
   getVariants,
+  getVariantsByBranch,
 } from "../../services/productService";
 import { fmtCurrency } from "../../utils/formatters";
 
@@ -807,10 +809,19 @@ const CategoryManager = () => {
   };
 
   const loadCategories = () => getCategories().then(setAllCats);
-  const loadItems = (id) =>
-    id
-      ? getProductsByCategory(id).then((d) => setItems(d || []))
-      : setItems([]);
+  const loadItems = (id, branchId) => {
+    if (!id) {
+      setItems([]);
+      return;
+    }
+    if (isOwner && branchId) {
+      getProductsByCategoryAndBranch(id, branchId).then((d) =>
+        setItems(d || []),
+      );
+    } else {
+      getProductsByCategory(id).then((d) => setItems(d || []));
+    }
+  };
 
   // Load branches for owner filter
   useEffect(() => {
@@ -828,8 +839,15 @@ const CategoryManager = () => {
     loadCategories();
   }, []);
   useEffect(() => {
-    loadItems(parentId);
-  }, [parentId]);
+    loadItems(parentId, selectedBranchId);
+  }, [parentId, selectedBranchId]);
+
+  // Reload variants when owner switches branch while on variant page
+  useEffect(() => {
+    if (!isOwner || !selectedProduct || !selectedBranchId) return;
+    getVariantsByBranch(selectedProduct.id, selectedBranchId).then(setVariants);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBranchId]);
 
   // ── Manager SKU auto ──
   useEffect(() => {
@@ -977,7 +995,10 @@ const CategoryManager = () => {
 
   const openVariantsPage = async (product) => {
     setSelectedProduct(product);
-    const v = await getVariants(product.id);
+    const v =
+      isOwner && selectedBranchId
+        ? await getVariantsByBranch(product.id, selectedBranchId)
+        : await getVariants(product.id);
     setVariants(v);
     setEditingVariant(null);
     setSkuEditAutoMode(false);
