@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useAuth } from "../../context/AuthContext";
 import {
   getCategories,
   addCategory,
@@ -17,6 +18,7 @@ import {
 } from "../../services/productService";
 import { fmtCurrency } from "../../utils/formatters";
 
+// ── Shared: Non-blocking confirm dialog ───────────────────────────────────
 const ConfirmDialog = ({ message, onConfirm, onCancel }) => (
   <div
     style={{
@@ -63,14 +65,697 @@ const ConfirmDialog = ({ message, onConfirm, onCancel }) => (
   </div>
 );
 
+// ── Shared: SKU generator ──────────────────────────────────────────────────
+const computeSKU = (productName, size, color, existingSkus = []) => {
+  const productCode = (productName || "")
+    .trim()
+    .split(/[\s\-]+/)
+    .filter(Boolean)
+    .map((w) => w[0]?.toUpperCase() || "")
+    .join("")
+    .slice(0, 4);
+  const sizeCode = (size || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .slice(0, 3);
+  const colorCode = (color || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .slice(0, 3);
+  const parts = [productCode, sizeCode, colorCode].filter(Boolean);
+  if (!parts.length) return "";
+  let base = parts.join("-");
+  if (!existingSkus.includes(base)) return base;
+  let n = 2;
+  while (existingSkus.includes(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
+};
+
+// ══════════════════════════════════════════════════════════════════════════
+// MANAGER: New-way Add Product+Variant form (inline, single step)
+// ══════════════════════════════════════════════════════════════════════════
+const EMPTY_NEW = {
+  productName: "",
+  basePrice: "",
+  description: "",
+  size: "",
+  color: "",
+  skuAuto: true,
+  sku: "",
+  barcode: "",
+  variant_price: "",
+};
+
+const ManagerAddProductModal = ({ categoryId, onSaved, onClose, showMsg }) => {
+  const [form, setForm] = useState(EMPTY_NEW);
+  const [saving, setSaving] = useState(false);
+
+  // Auto-SKU
+  useEffect(() => {
+    if (!form.skuAuto) return;
+    const generated = computeSKU(form.productName, form.size, form.color, []);
+    setForm((prev) => ({ ...prev, sku: generated }));
+  }, [form.skuAuto, form.productName, form.size, form.color]);
+
+  // Auto-barcode from SKU
+  useEffect(() => {
+    if (!form.skuAuto) return;
+    setForm((prev) => ({ ...prev, barcode: prev.sku }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.sku]);
+
+  const handleSave = async () => {
+    if (!form.productName.trim() || !form.basePrice) {
+      showMsg("Product name and base price are required", "error");
+      return;
+    }
+    if (!form.sku) {
+      showMsg("SKU is required", "error");
+      return;
+    }
+    if (!form.barcode) {
+      showMsg("Barcode is required — use SKU or scan", "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      const product = await addProduct({
+        name: form.productName.trim(),
+        base_price: parseFloat(form.basePrice),
+        description: form.description || "",
+        category_id: categoryId,
+      });
+      await addVariant({
+        product_id: product.id,
+        sku: form.sku,
+        size: form.size || null,
+        color: form.color || null,
+        barcode: form.barcode,
+        variant_price: form.variant_price
+          ? parseFloat(form.variant_price)
+          : null,
+      });
+      showMsg(`"${form.productName}" added with first variant!`);
+      onSaved();
+      onClose();
+    } catch (err) {
+      showMsg(err.response?.data?.error || "Error saving product", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className="modal-overlay"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="modal" style={{ maxWidth: 560 }}>
+        <div className="modal-title">👗 Add New Product</div>
+        <div
+          style={{
+            fontSize: 12,
+            color: "var(--text-muted)",
+            marginBottom: 16,
+            marginTop: -8,
+          }}
+        >
+          Fill product details and the first variant below. You can add more
+          variants after saving.
+        </div>
+
+        {/* Product info */}
+        <div
+          style={{
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-sm)",
+            padding: "14px 16px",
+            marginBottom: 14,
+          }}
+        >
+          <div
+            style={{
+              fontWeight: 700,
+              fontSize: 12,
+              color: "var(--text-sub)",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+              marginBottom: 10,
+            }}
+          >
+            Product Info
+          </div>
+          <div className="form-group">
+            <label className="form-label">Product Name *</label>
+            <input
+              className="form-control"
+              value={form.productName}
+              onChange={(e) =>
+                setForm({ ...form, productName: e.target.value })
+              }
+              placeholder="e.g. Floral Silk Dress"
+              autoFocus
+            />
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Base Price (LKR) *</label>
+              <input
+                className="form-control"
+                type="number"
+                step="0.01"
+                value={form.basePrice}
+                onChange={(e) =>
+                  setForm({ ...form, basePrice: e.target.value })
+                }
+                placeholder="0.00"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Description</label>
+              <input
+                className="form-control"
+                value={form.description}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
+                placeholder="Optional"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* First variant */}
+        <div
+          style={{
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-sm)",
+            padding: "14px 16px",
+          }}
+        >
+          <div
+            style={{
+              fontWeight: 700,
+              fontSize: 12,
+              color: "var(--text-sub)",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+              marginBottom: 10,
+            }}
+          >
+            First Variant
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Size</label>
+              <input
+                className="form-control"
+                value={form.size}
+                onChange={(e) => setForm({ ...form, size: e.target.value })}
+                placeholder="XS / S / M / L / XL"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Color</label>
+              <input
+                className="form-control"
+                value={form.color}
+                onChange={(e) => setForm({ ...form, color: e.target.value })}
+                placeholder="Black / Red / Blue..."
+              />
+            </div>
+          </div>
+
+          {/* SKU */}
+          <div className="form-group">
+            <label
+              className="form-label"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span>SKU *</span>
+              <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                {form.skuAuto ? (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      background: "var(--success-bg)",
+                      color: "var(--success)",
+                      padding: "1px 8px",
+                      borderRadius: 10,
+                      fontWeight: 700,
+                    }}
+                  >
+                    AUTO
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      background: "var(--border)",
+                      color: "var(--text-sub)",
+                      padding: "1px 8px",
+                      borderRadius: 10,
+                      fontWeight: 700,
+                    }}
+                  >
+                    MANUAL
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, skuAuto: true })}
+                  style={{
+                    fontSize: 10,
+                    background: "none",
+                    border: "1px solid var(--border)",
+                    borderRadius: 4,
+                    padding: "1px 6px",
+                    cursor: "pointer",
+                    color: "var(--text-sub)",
+                  }}
+                >
+                  🔄 Auto
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, skuAuto: false })}
+                  style={{
+                    fontSize: 10,
+                    background: "none",
+                    border: "1px solid var(--border)",
+                    borderRadius: 4,
+                    padding: "1px 6px",
+                    cursor: "pointer",
+                    color: "var(--text-sub)",
+                  }}
+                >
+                  ✏️ Manual
+                </button>
+              </span>
+            </label>
+            <input
+              className="form-control"
+              style={{ fontFamily: "monospace" }}
+              value={form.sku}
+              readOnly={form.skuAuto}
+              onChange={(e) =>
+                setForm({ ...form, sku: e.target.value, skuAuto: false })
+              }
+              placeholder={
+                form.skuAuto
+                  ? "Auto from name + size + color"
+                  : "Type SKU manually"
+              }
+            />
+            {form.skuAuto && form.sku && (
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "var(--text-muted)",
+                  marginTop: 3,
+                }}
+              >
+                Generated:{" "}
+                <strong style={{ fontFamily: "monospace" }}>{form.sku}</strong>
+              </div>
+            )}
+          </div>
+
+          {/* Barcode */}
+          <div className="form-group">
+            <label
+              className="form-label"
+              style={{ display: "flex", justifyContent: "space-between" }}
+            >
+              <span>Barcode *</span>
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                Scan item or use SKU
+              </span>
+            </label>
+            <input
+              className="form-control"
+              style={{ fontFamily: "monospace" }}
+              value={form.barcode}
+              onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+              placeholder="Scan barcode or auto-filled from SKU"
+            />
+            {form.sku && form.barcode !== form.sku && (
+              <button
+                type="button"
+                style={{
+                  marginTop: 4,
+                  fontSize: 11,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--pink)",
+                  textDecoration: "underline",
+                  padding: 0,
+                }}
+                onClick={() => setForm({ ...form, barcode: form.sku })}
+              >
+                Use SKU as barcode ({form.sku})
+              </button>
+            )}
+          </div>
+
+          {/* Variant price */}
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">
+              Variant Price (leave blank to use base price)
+            </label>
+            <input
+              className="form-control"
+              type="number"
+              step="0.01"
+              value={form.variant_price}
+              onChange={(e) =>
+                setForm({ ...form, variant_price: e.target.value })
+              }
+              placeholder="Optional override"
+            />
+          </div>
+        </div>
+
+        <div className="modal-footer" style={{ marginTop: 16 }}>
+          <button className="btn btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <span className="spinner" />
+            ) : (
+              "💾 Save Product & Variant"
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════
+// MANAGER: Add Variant modal — new way with auto SKU + auto barcode
+// ══════════════════════════════════════════════════════════════════════════
+const ManagerAddVariantModal = ({
+  product,
+  existingVariants,
+  onSaved,
+  onClose,
+  showMsg,
+}) => {
+  const EMPTY = {
+    size: "",
+    color: "",
+    skuAuto: true,
+    sku: "",
+    barcode: "",
+    variant_price: "",
+  };
+  const [form, setForm] = useState(EMPTY);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!form.skuAuto) return;
+    const generated = computeSKU(
+      product.name,
+      form.size,
+      form.color,
+      existingVariants.map((v) => v.sku),
+    );
+    setForm((prev) => ({ ...prev, sku: generated }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.skuAuto, form.size, form.color]);
+
+  useEffect(() => {
+    if (!form.skuAuto) return;
+    setForm((prev) => ({ ...prev, barcode: prev.sku }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.sku]);
+
+  const handleSave = async () => {
+    if (!form.sku) {
+      showMsg("SKU is required", "error");
+      return;
+    }
+    if (!form.barcode) {
+      showMsg("Barcode is required", "error");
+      return;
+    }
+    if (existingVariants.some((v) => v.sku === form.sku)) {
+      showMsg(`SKU "${form.sku}" already exists`, "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      await addVariant({
+        product_id: product.id,
+        sku: form.sku,
+        size: form.size || null,
+        color: form.color || null,
+        barcode: form.barcode,
+        variant_price: form.variant_price
+          ? parseFloat(form.variant_price)
+          : null,
+      });
+      showMsg("Variant added!");
+      onSaved();
+      onClose();
+    } catch (err) {
+      showMsg(err.response?.data?.error || "Error adding variant", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className="modal-overlay"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="modal">
+        <div className="modal-title">+ Add Variant — {product.name}</div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Size</label>
+            <input
+              className="form-control"
+              value={form.size}
+              onChange={(e) => setForm({ ...form, size: e.target.value })}
+              placeholder="XS / S / M / L / XL"
+              autoFocus
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Color</label>
+            <input
+              className="form-control"
+              value={form.color}
+              onChange={(e) => setForm({ ...form, color: e.target.value })}
+              placeholder="Black / Red / Blue..."
+            />
+          </div>
+        </div>
+
+        {/* SKU */}
+        <div className="form-group">
+          <label
+            className="form-label"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span>SKU *</span>
+            <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              {form.skuAuto ? (
+                <span
+                  style={{
+                    fontSize: 10,
+                    background: "var(--success-bg)",
+                    color: "var(--success)",
+                    padding: "1px 8px",
+                    borderRadius: 10,
+                    fontWeight: 700,
+                  }}
+                >
+                  AUTO
+                </span>
+              ) : (
+                <span
+                  style={{
+                    fontSize: 10,
+                    background: "var(--border)",
+                    color: "var(--text-sub)",
+                    padding: "1px 8px",
+                    borderRadius: 10,
+                    fontWeight: 700,
+                  }}
+                >
+                  MANUAL
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, skuAuto: true })}
+                style={{
+                  fontSize: 10,
+                  background: "none",
+                  border: "1px solid var(--border)",
+                  borderRadius: 4,
+                  padding: "1px 6px",
+                  cursor: "pointer",
+                  color: "var(--text-sub)",
+                }}
+              >
+                🔄 Auto
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, skuAuto: false })}
+                style={{
+                  fontSize: 10,
+                  background: "none",
+                  border: "1px solid var(--border)",
+                  borderRadius: 4,
+                  padding: "1px 6px",
+                  cursor: "pointer",
+                  color: "var(--text-sub)",
+                }}
+              >
+                ✏️ Manual
+              </button>
+            </span>
+          </label>
+          <input
+            className="form-control"
+            style={{ fontFamily: "monospace" }}
+            value={form.sku}
+            readOnly={form.skuAuto}
+            onChange={(e) =>
+              setForm({ ...form, sku: e.target.value, skuAuto: false })
+            }
+            placeholder={
+              form.skuAuto
+                ? "Auto from product + size + color"
+                : "Type SKU manually"
+            }
+          />
+          {form.skuAuto && form.sku && (
+            <div
+              style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}
+            >
+              Generated:{" "}
+              <strong style={{ fontFamily: "monospace" }}>{form.sku}</strong>
+            </div>
+          )}
+        </div>
+
+        {/* Barcode */}
+        <div className="form-group">
+          <label
+            className="form-label"
+            style={{ display: "flex", justifyContent: "space-between" }}
+          >
+            <span>Barcode *</span>
+            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+              Scan item or use SKU
+            </span>
+          </label>
+          <input
+            className="form-control"
+            style={{ fontFamily: "monospace" }}
+            value={form.barcode}
+            onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+            placeholder="Scan or auto-filled from SKU"
+          />
+          {form.sku && form.barcode !== form.sku && (
+            <button
+              type="button"
+              style={{
+                marginTop: 4,
+                fontSize: 11,
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--pink)",
+                textDecoration: "underline",
+                padding: 0,
+              }}
+              onClick={() => setForm({ ...form, barcode: form.sku })}
+            >
+              Use SKU as barcode ({form.sku})
+            </button>
+          )}
+        </div>
+
+        {/* Variant price */}
+        <div className="form-group">
+          <label className="form-label">
+            Variant Price (leave blank to use base price)
+          </label>
+          <input
+            className="form-control"
+            type="number"
+            step="0.01"
+            value={form.variant_price}
+            onChange={(e) =>
+              setForm({ ...form, variant_price: e.target.value })
+            }
+            placeholder="Optional override"
+          />
+        </div>
+
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? <span className="spinner" /> : "+ Add Variant"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════
+// MAIN: CategoryManager (shared — Owner & Manager)
+// ══════════════════════════════════════════════════════════════════════════
 const CategoryManager = () => {
+  const { user } = useAuth();
+  const isManager = user?.role === "Manager";
+
   const [allCats, setAllCats] = useState([]);
   const [items, setItems] = useState([]);
   const [variants, setVariants] = useState([]);
   const [parentId, setParentId] = useState(null);
+
+  // Modals
   const [showCatModal, setShowCatModal] = useState(false);
   const [showItemModal, setShowItemModal] = useState(false);
   const [showAddVariantModal, setShowAddVariantModal] = useState(false);
+  const [showManagerAddProduct, setShowManagerAddProduct] = useState(false);
+
   const [editMode, setEditMode] = useState(false);
   const [catData, setCatData] = useState({ id: null, name: "" });
   const [itemData, setItemData] = useState({
@@ -79,7 +764,12 @@ const CategoryManager = () => {
     base_price: "",
     description: "",
   });
-  const [selectedProduct, setSelectedProduct] = useState(null); // product whose variants page is open
+
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [editingVariant, setEditingVariant] = useState(null);
+  const [skuEditAutoMode, setSkuEditAutoMode] = useState(false);
+
+  // Owner-only add variant form state (old way)
   const [variantData, setVariantData] = useState({
     sku: "",
     size: "",
@@ -88,11 +778,9 @@ const CategoryManager = () => {
     variant_price: "",
   });
   const [skuAutoMode, setSkuAutoMode] = useState(true);
-  const [editingVariant, setEditingVariant] = useState(null);
-  const [skuEditAutoMode, setSkuEditAutoMode] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState({ text: "", type: "success" });
-
   const [confirmDialog, setConfirmDialog] = useState(null);
 
   const confirm = (message) =>
@@ -128,35 +816,7 @@ const CategoryManager = () => {
     loadItems(parentId);
   }, [parentId]);
 
-  // ─── SKU generation ───────────────────────────────────────────────────────
-  const computeSKU = (productName, size, color, existingSkus = []) => {
-    const productCode = (productName || "")
-      .trim()
-      .split(/[\s\-]+/)
-      .filter(Boolean)
-      .map((w) => w[0]?.toUpperCase() || "")
-      .join("")
-      .slice(0, 4);
-    const sizeCode = (size || "")
-      .trim()
-      .toUpperCase()
-      .replace(/\s+/g, "")
-      .slice(0, 3);
-    const colorCode = (color || "")
-      .trim()
-      .toUpperCase()
-      .replace(/\s+/g, "")
-      .slice(0, 3);
-    const parts = [productCode, sizeCode, colorCode].filter(Boolean);
-    if (!parts.length) return "";
-    let base = parts.join("-");
-    if (!existingSkus.includes(base)) return base;
-    let n = 2;
-    while (existingSkus.includes(`${base}-${n}`)) n++;
-    return `${base}-${n}`;
-  };
-
-  // Keep variantData.sku in sync when auto mode is on (Add form)
+  // ── Owner SKU auto (old way) ──
   useEffect(() => {
     if (!skuAutoMode || !selectedProduct) return;
     const generated = computeSKU(
@@ -175,7 +835,6 @@ const CategoryManager = () => {
     variants,
   ]);
 
-  // Keep editingVariant.sku in sync when edit-auto mode is on
   useEffect(() => {
     if (!skuEditAutoMode || !editingVariant || !selectedProduct) return;
     const generated = computeSKU(
@@ -188,7 +847,7 @@ const CategoryManager = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skuEditAutoMode, editingVariant?.size, editingVariant?.color]);
 
-  // ─── Handlers ─────────────────────────────────────────────────────────────
+  // ── Handlers ──
   const handleSaveCategory = async () => {
     setSaving(true);
     try {
@@ -223,17 +882,14 @@ const CategoryManager = () => {
     }
   };
 
+  // Owner-only: add variant (old way)
   const handleSaveVariant = async () => {
     if (!variantData.sku || !variantData.barcode) {
       showMsg("SKU and Barcode are required", "error");
       return;
     }
-    // Client-side duplicate check
     if (variants.some((v) => v.sku === variantData.sku)) {
-      showMsg(
-        `SKU "${variantData.sku}" already exists — change it or use auto-generate`,
-        "error",
-      );
+      showMsg(`SKU "${variantData.sku}" already exists`, "error");
       return;
     }
     setSaving(true);
@@ -264,16 +920,12 @@ const CategoryManager = () => {
       showMsg("SKU and Barcode are required", "error");
       return;
     }
-    // Client-side duplicate check (exclude self)
     if (
       variants.some(
         (v) => v.id !== editingVariant.id && v.sku === editingVariant.sku,
       )
     ) {
-      showMsg(
-        `SKU "${editingVariant.sku}" is already used by another variant`,
-        "error",
-      );
+      showMsg(`SKU "${editingVariant.sku}" is already used`, "error");
       return;
     }
     setSaving(true);
@@ -329,7 +981,7 @@ const CategoryManager = () => {
     setShowAddVariantModal(true);
   };
 
-  // ─── Derived ──────────────────────────────────────────────────────────────
+  // ── Derived ──
   const currentCategories = allCats.filter((c) => c.parent_id === parentId);
 
   const buildBreadcrumb = () => {
@@ -345,12 +997,14 @@ const CategoryManager = () => {
   };
   const breadcrumb = buildBreadcrumb();
 
-  // ─── Variant detail page ──────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════
+  // VARIANT PAGE (shared — same for both roles)
+  // ══════════════════════════════════════════════════════════════════════
   if (selectedProduct) {
     return (
       <div className="page-content">
         {confirmDialog && <ConfirmDialog {...confirmDialog} />}
-        {/* Message bar */}
+
         {msg.text && (
           <div
             className={`alert alert-${msg.type === "error" ? "danger" : "success"}`}
@@ -380,7 +1034,6 @@ const CategoryManager = () => {
                 marginBottom: 8,
               }}
             >
-              {/* Root */}
               <span
                 onClick={() => {
                   setSelectedProduct(null);
@@ -396,8 +1049,6 @@ const CategoryManager = () => {
               >
                 🏠 All Categories
               </span>
-
-              {/* Category trail */}
               {breadcrumb.map((crumb) => (
                 <span
                   key={crumb.id}
@@ -429,8 +1080,6 @@ const CategoryManager = () => {
                   </span>
                 </span>
               ))}
-
-              {/* Product name */}
               <span style={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <span
                   style={{
@@ -451,8 +1100,6 @@ const CategoryManager = () => {
                   👗 {selectedProduct.name}
                 </span>
               </span>
-
-              {/* Variants (current) */}
               <span style={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <span
                   style={{
@@ -474,7 +1121,6 @@ const CategoryManager = () => {
                 </span>
               </span>
             </div>
-
             <button
               className="btn btn-ghost btn-sm"
               style={{ marginBottom: 6 }}
@@ -491,7 +1137,12 @@ const CategoryManager = () => {
               Base Price: {fmtCurrency(selectedProduct.base_price)}
             </div>
           </div>
-          <button className="btn btn-primary" onClick={openAddVariantModal}>
+          <button
+            className="btn btn-primary"
+            onClick={() =>
+              isManager ? setShowAddVariantModal(true) : openAddVariantModal()
+            }
+          >
             + Add Variant
           </button>
         </div>
@@ -513,9 +1164,7 @@ const CategoryManager = () => {
             <tbody>
               {variants.map((v) =>
                 editingVariant?.id === v.id ? (
-                  /* ── Inline edit row ── */
                   <tr key={v.id} style={{ background: "rgba(233,30,99,0.04)" }}>
-                    {/* SKU */}
                     <td style={{ minWidth: 170 }}>
                       <div
                         style={{
@@ -541,7 +1190,6 @@ const CategoryManager = () => {
                         )}
                         <button
                           type="button"
-                          title="Auto-generate SKU from Size & Color"
                           onClick={() => setSkuEditAutoMode(true)}
                           style={{
                             fontSize: 10,
@@ -557,7 +1205,6 @@ const CategoryManager = () => {
                         </button>
                         <button
                           type="button"
-                          title="Switch to manual SKU"
                           onClick={() => setSkuEditAutoMode(false)}
                           style={{
                             fontSize: 10,
@@ -683,7 +1330,6 @@ const CategoryManager = () => {
                     </td>
                   </tr>
                 ) : (
-                  /* ── Normal display row ── */
                   <tr key={v.id}>
                     <td
                       style={{
@@ -757,8 +1403,23 @@ const CategoryManager = () => {
           )}
         </div>
 
-        {/* ── Add Variant Popup ── */}
-        {showAddVariantModal && (
+        {/* ── Add Variant Modal ──
+            Manager → new way (auto SKU + auto barcode)
+            Owner   → old way (manual fields) */}
+        {showAddVariantModal && isManager && (
+          <ManagerAddVariantModal
+            product={selectedProduct}
+            existingVariants={variants}
+            onSaved={async () => {
+              const updated = await getVariants(selectedProduct.id);
+              setVariants(updated);
+            }}
+            onClose={() => setShowAddVariantModal(false)}
+            showMsg={showMsg}
+          />
+        )}
+
+        {showAddVariantModal && !isManager && (
           <div
             className="modal-overlay"
             onClick={(e) =>
@@ -769,7 +1430,6 @@ const CategoryManager = () => {
               <div className="modal-title">
                 + Add Variant — {selectedProduct.name}
               </div>
-
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Size</label>
@@ -800,7 +1460,6 @@ const CategoryManager = () => {
                   />
                 </div>
               </div>
-
               <div className="form-row">
                 <div className="form-group">
                   <label
@@ -854,7 +1513,6 @@ const CategoryManager = () => {
                           cursor: "pointer",
                           color: "var(--text-sub)",
                         }}
-                        title="Auto-generate SKU from product + size + color"
                       >
                         🔄 Auto
                       </button>
@@ -870,7 +1528,6 @@ const CategoryManager = () => {
                           cursor: "pointer",
                           color: "var(--text-sub)",
                         }}
-                        title="Enter SKU manually"
                       >
                         ✏️ Manual
                       </button>
@@ -888,9 +1545,7 @@ const CategoryManager = () => {
                       }));
                     }}
                     placeholder={
-                      skuAutoMode
-                        ? "Auto-generated from product + size + color"
-                        : "Type SKU manually"
+                      skuAutoMode ? "Auto-generated" : "Type SKU manually"
                     }
                     style={{
                       fontFamily: "monospace",
@@ -909,7 +1564,7 @@ const CategoryManager = () => {
                   >
                     {skuAutoMode
                       ? `Generated: "${variantData.sku || "(type size/color above)"}"`
-                      : "Manual mode — click 🔄 Auto to switch back"}
+                      : "Manual mode"}
                   </div>
                 </div>
                 <div className="form-group">
@@ -927,7 +1582,6 @@ const CategoryManager = () => {
                   />
                 </div>
               </div>
-
               <div className="form-group">
                 <label className="form-label">
                   Variant Price (leave blank to use base price)
@@ -946,7 +1600,6 @@ const CategoryManager = () => {
                   placeholder="Optional override price"
                 />
               </div>
-
               <div className="modal-footer">
                 <button
                   className="btn btn-secondary"
@@ -969,10 +1622,13 @@ const CategoryManager = () => {
     );
   }
 
-  // ─── Main category/product view ───────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════
+  // MAIN CATEGORY / PRODUCT VIEW
+  // ══════════════════════════════════════════════════════════════════════
   return (
     <div className="page-content">
       {confirmDialog && <ConfirmDialog {...confirmDialog} />}
+
       {msg.text && (
         <div
           className={`alert alert-${msg.type === "error" ? "danger" : "success"}`}
@@ -1074,14 +1730,18 @@ const CategoryManager = () => {
             <button
               className="btn btn-primary"
               onClick={() => {
-                setEditMode(false);
-                setItemData({
-                  id: null,
-                  name: "",
-                  base_price: "",
-                  description: "",
-                });
-                setShowItemModal(true);
+                if (isManager) {
+                  setShowManagerAddProduct(true);
+                } else {
+                  setEditMode(false);
+                  setItemData({
+                    id: null,
+                    name: "",
+                    base_price: "",
+                    description: "",
+                  });
+                  setShowItemModal(true);
+                }
               }}
             >
               + Add Product
@@ -1256,7 +1916,7 @@ const CategoryManager = () => {
         </>
       )}
 
-      {/* Category Modal */}
+      {/* ── Category Modal ── */}
       {showCatModal && (
         <div
           className="modal-overlay"
@@ -1299,8 +1959,8 @@ const CategoryManager = () => {
         </div>
       )}
 
-      {/* Product Modal */}
-      {showItemModal && (
+      {/* ── Owner: Product Modal (old way) ── */}
+      {showItemModal && !isManager && (
         <div
           className="modal-overlay"
           onClick={(e) =>
@@ -1361,6 +2021,78 @@ const CategoryManager = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Owner: Edit Product Modal ── */}
+      {showItemModal && isManager && (
+        <div
+          className="modal-overlay"
+          onClick={(e) =>
+            e.target === e.currentTarget && setShowItemModal(false)
+          }
+        >
+          <div className="modal">
+            <div className="modal-title">✏️ Edit Product</div>
+            <div className="form-group">
+              <label className="form-label">Product Name *</label>
+              <input
+                className="form-control"
+                value={itemData.name}
+                onChange={(e) =>
+                  setItemData({ ...itemData, name: e.target.value })
+                }
+                autoFocus
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Base Price (LKR) *</label>
+              <input
+                className="form-control"
+                type="number"
+                step="0.01"
+                value={itemData.base_price}
+                onChange={(e) =>
+                  setItemData({ ...itemData, base_price: e.target.value })
+                }
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Description</label>
+              <textarea
+                className="form-control"
+                value={itemData.description}
+                onChange={(e) =>
+                  setItemData({ ...itemData, description: e.target.value })
+                }
+              />
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowItemModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleSaveItem}
+                disabled={saving}
+              >
+                {saving ? <span className="spinner" /> : "Save Product"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Manager: Add Product (new way — product + first variant in one form) ── */}
+      {showManagerAddProduct && isManager && (
+        <ManagerAddProductModal
+          categoryId={parentId}
+          onSaved={() => loadItems(parentId)}
+          onClose={() => setShowManagerAddProduct(false)}
+          showMsg={showMsg}
+        />
       )}
     </div>
   );
