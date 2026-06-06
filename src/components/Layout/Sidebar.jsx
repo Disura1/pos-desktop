@@ -85,11 +85,78 @@ const Sidebar = ({ currentView, setView }) => {
           <div className="sidebar-avatar">
             {initials(user.fullName || user.username)}
           </div>
-          <div>
-            <div className="sidebar-user-name">
-              {user.fullName || user.username}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Full name — shown only if it exists and is different from username */}
+            {user.fullName && user.fullName !== user.username && (
+              <div
+                className="sidebar-user-name"
+                style={{ fontWeight: 700, fontSize: 13 }}
+                title={user.fullName}
+              >
+                {user.fullName}
+              </div>
+            )}
+            {/* Username row */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                marginTop: user.fullName ? 1 : 0,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 10,
+                  color: "var(--text-muted)",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
+                  flexShrink: 0,
+                }}
+              >
+                User
+              </span>
+              <span
+                className="sidebar-user-name"
+                style={{
+                  fontWeight: user.fullName ? 500 : 700,
+                  fontSize: user.fullName ? 11 : 13,
+                  opacity: user.fullName ? 0.75 : 1,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+                title={user.username}
+              >
+                {user.username}
+              </span>
             </div>
-            <div className="sidebar-user-role">{user.role}</div>
+            {/* Role row */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                marginTop: 2,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 10,
+                  color: "var(--text-muted)",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
+                  flexShrink: 0,
+                }}
+              >
+                Role
+              </span>
+              <div className="sidebar-user-role" style={{ margin: 0 }}>
+                {user.role}
+              </div>
+            </div>
           </div>
         </div>
         <button className="sidebar-logout-btn" onClick={logout}>
