@@ -977,7 +977,7 @@ const CategoryManager = () => {
 
   const handleDeleteVariant = async (variantId, sku) => {
     const ok = await confirm(
-      `Delete variant "${sku}"? This will also remove its stock records.`,
+      `Deactivate variant "${sku}"?\n\nIts stock and sales history remain intact, it will just be hidden from active listings.`,
     );
     if (!ok) return;
     setSaving(true);
@@ -985,9 +985,9 @@ const CategoryManager = () => {
       await deleteVariant(variantId);
       const updated = await getVariants(selectedProduct.id);
       setVariants(updated);
-      showMsg("Variant deleted!");
+      showMsg("Variant deactivated!");
     } catch (err) {
-      showMsg(err.response?.data?.error || "Error deleting variant", "error");
+      showMsg(err.response?.data?.error || "Error deactivating variant", "error");
     } finally {
       setSaving(false);
     }
@@ -1551,7 +1551,7 @@ const CategoryManager = () => {
                               onClick={() => handleDeleteVariant(v.id, v.sku)}
                               disabled={saving}
                             >
-                              Delete
+                              Deactivate
                             </button>
                           )}
                         </div>
@@ -1770,12 +1770,12 @@ const CategoryManager = () => {
                     className="btn btn-danger btn-sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      confirm("Delete this folder?").then((ok) => {
+                      confirm("Deactivate this folder?\n\nIt will be hidden but can be restored later if needed.").then((ok) => {
                         if (ok) deleteCategory(cat.id).then(loadCategories);
                       });
                     }}
                   >
-                    Delete
+                    Deactivate
                   </button>
                 )}
               </div>
@@ -1846,25 +1846,25 @@ const CategoryManager = () => {
                             Edit
                           </button>
                         )}
-                        {/* Delete — owner only */}
+                        {/* Deactivate — owner only */}
                         {isOwner && (
                           <button
                             className="btn btn-danger btn-sm"
                             disabled={saving}
                             onClick={async () => {
                               const ok = await confirm(
-                                `Delete "${item.name}"?\n\nThis will also remove all its variants and stock records.`,
+                                `Deactivate "${item.name}"?\n\nIt will be hidden from active listings but its sales history and stock records remain intact.`,
                               );
                               if (!ok) return;
                               setSaving(true);
                               try {
                                 await deleteProduct(item.id);
                                 await loadItems(parentId, selectedBranchId);
-                                showMsg(`"${item.name}" deleted.`);
+                                showMsg(`"${item.name}" deactivated.`);
                               } catch (err) {
                                 showMsg(
                                   err.response?.data?.error ||
-                                    "Error deleting product",
+                                    "Error deactivating product",
                                   "error",
                                 );
                               } finally {
@@ -1872,7 +1872,7 @@ const CategoryManager = () => {
                               }
                             }}
                           >
-                            Delete
+                            Deactivate
                           </button>
                         )}
                       </div>
