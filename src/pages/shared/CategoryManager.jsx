@@ -10,6 +10,7 @@ import {
   addProduct,
   getProductsByCategory,
   getProductsByCategoryAndBranch,
+  getProductsByCategoryWithStock,
   deleteProduct,
   updateProduct,
   addVariant,
@@ -110,7 +111,13 @@ const EMPTY_NEW = {
   variant_price: "",
 };
 
-const ManagerAddProductModal = ({ categoryId, onSaved, onClose, showMsg }) => {
+const ManagerAddProductModal = ({
+  categoryId,
+  branchId,
+  onSaved,
+  onClose,
+  showMsg,
+}) => {
   const [form, setForm] = useState(EMPTY_NEW);
   const [saving, setSaving] = useState(false);
 
@@ -158,6 +165,7 @@ const ManagerAddProductModal = ({ categoryId, onSaved, onClose, showMsg }) => {
         variant_price: form.variant_price
           ? parseFloat(form.variant_price)
           : null,
+        branch_id: branchId,
       });
       showMsg(`"${form.productName}" added with first variant!`);
       onSaved();
@@ -475,6 +483,7 @@ const ManagerAddProductModal = ({ categoryId, onSaved, onClose, showMsg }) => {
 const ManagerAddVariantModal = ({
   product,
   existingVariants,
+  branchId,
   onSaved,
   onClose,
   showMsg,
@@ -532,6 +541,7 @@ const ManagerAddVariantModal = ({
         variant_price: form.variant_price
           ? parseFloat(form.variant_price)
           : null,
+        branch_id: branchId,
       });
       showMsg("Variant added!");
       onSaved();
@@ -753,7 +763,9 @@ const CategoryManager = () => {
   const [variants, setVariants] = useState([]);
   const [parentId, setParentId] = useState(null);
   const [branches, setBranches] = useState([]);
-  const [selectedBranchId, setSelectedBranchId] = useState(null); // owner filter
+  const [selectedBranchId, setSelectedBranchId] = useState(
+    isManager ? user?.branchId || null : null,
+  ); // owner: chosen filter branch. manager: their own branch (fixed)
 
   // Modals
   const [showCatModal, setShowCatModal] = useState(false);
@@ -814,8 +826,14 @@ const CategoryManager = () => {
       setItems([]);
       return;
     }
-    if (isOwner && branchId) {
-      getProductsByCategoryAndBranch(id, branchId).then((d) =>
+    if (isOwner) {
+      // Owner: show stock per branch + total across all branches
+      getProductsByCategoryWithStock(id, { allBranches: "true" }).then((d) =>
+        setItems(d || []),
+      );
+    } else if (isManager && branchId) {
+      // Manager: show stock for their own branch
+      getProductsByCategoryWithStock(id, { branchId }).then((d) =>
         setItems(d || []),
       );
     } else {
@@ -987,18 +1005,23 @@ const CategoryManager = () => {
       setVariants(updated);
       showMsg("Variant deactivated!");
     } catch (err) {
-      showMsg(err.response?.data?.error || "Error deactivating variant", "error");
+      showMsg(
+        err.response?.data?.error || "Error deactivating variant",
+        "error",
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const openVariantsPage = async (product) => {
-    setSelectedProduct(product);
+    // Normalize id since the new with-stock endpoint returns product_id, not id
+    const normalized = { ...product, id: product.product_id || product.id };
+    setSelectedProduct(normalized);
     const v =
       isOwner && selectedBranchId
-        ? await getVariantsByBranch(product.id, selectedBranchId)
-        : await getVariants(product.id);
+        ? await getVariantsByBranch(normalized.id, selectedBranchId)
+        : await getVariants(normalized.id);
     setVariants(v);
     setEditingVariant(null);
     setSkuEditAutoMode(false);
@@ -1579,6 +1602,7 @@ const CategoryManager = () => {
           <ManagerAddVariantModal
             product={selectedProduct}
             existingVariants={variants}
+            branchId={user?.branchId}
             onSaved={async () => {
               const updated = await getVariants(selectedProduct.id);
               setVariants(updated);
@@ -1770,7 +1794,9 @@ const CategoryManager = () => {
                     className="btn btn-danger btn-sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      confirm("Deactivate this folder?\n\nIt will be hidden but can be restored later if needed.").then((ok) => {
+                      confirm(
+                        "Deactivate this folder?\n\nIt will be hidden but can be restored later if needed.",
+                      ).then((ok) => {
                         if (ok) deleteCategory(cat.id).then(loadCategories);
                       });
                     }}
@@ -1805,6 +1831,9 @@ const CategoryManager = () => {
                   <th>Product Name</th>
                   <th>Description</th>
                   <th>Base Price</th>
+                  {isManager && <th>Stock (This Branch)</th>}
+                  {isOwner && <th>Stock by Branch</th>}
+                  {isOwner && <th>Total Stock</th>}
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -1818,6 +1847,60 @@ const CategoryManager = () => {
                     <td style={{ fontWeight: 700 }}>
                       {fmtCurrency(item.base_price)}
                     </td>
+
+                    {/* Manager: stock for their own branch */}
+                    {isManager && (
+                      <td>
+                        {item.branch_stock != null ? (
+                          <span
+                            className={`badge ${
+                              item.branch_stock == 0
+                                ? "badge-danger"
+                                : "badge-success"
+                            }`}
+                          >
+                            {item.branch_stock}
+                          </span>
+                        ) : (
+                          <span
+                            style={{ color: "var(--text-muted)", fontSize: 12 }}
+                          >
+                            —
+                          </span>
+                        )}
+                      </td>
+                    )}
+
+                    {/* Owner: stock per branch */}
+                    {isOwner && (
+                      <td style={{ fontSize: 11 }}>
+                        {Array.isArray(item.stock) && item.stock.length > 0 ? (
+                          item.stock.map((s) => (
+                            <div key={s.branch_id}>
+                              {s.branch_name}: <strong>{s.stock_qty}</strong>
+                            </div>
+                          ))
+                        ) : (
+                          <span style={{ color: "var(--text-muted)" }}>—</span>
+                        )}
+                      </td>
+                    )}
+
+                    {/* Owner: total */}
+                    {isOwner && (
+                      <td>
+                        <span
+                          className={`badge ${
+                            (item.total_stock || 0) == 0
+                              ? "badge-danger"
+                              : "badge-success"
+                          }`}
+                        >
+                          {item.total_stock || 0}
+                        </span>
+                      </td>
+                    )}
+
                     <td>
                       <div style={{ display: "flex", gap: 6 }}>
                         {/* View variants — both owner and manager */}
@@ -1834,7 +1917,7 @@ const CategoryManager = () => {
                             className="btn btn-outline btn-sm"
                             onClick={() => {
                               setItemData({
-                                id: item.id,
+                                id: item.product_id || item.id,
                                 name: item.name || "",
                                 base_price: item.base_price || "",
                                 description: item.description || "",
@@ -1846,25 +1929,25 @@ const CategoryManager = () => {
                             Edit
                           </button>
                         )}
-                        {/* Deactivate — owner only */}
+                        {/* Delete — owner only */}
                         {isOwner && (
                           <button
                             className="btn btn-danger btn-sm"
                             disabled={saving}
                             onClick={async () => {
                               const ok = await confirm(
-                                `Deactivate "${item.name}"?\n\nIt will be hidden from active listings but its sales history and stock records remain intact.`,
+                                `Delete "${item.name}"?\n\nThis will also remove all its variants and stock records.`,
                               );
                               if (!ok) return;
                               setSaving(true);
                               try {
-                                await deleteProduct(item.id);
+                                await deleteProduct(item.product_id || item.id);
                                 await loadItems(parentId, selectedBranchId);
-                                showMsg(`"${item.name}" deactivated.`);
+                                showMsg(`"${item.name}" deleted.`);
                               } catch (err) {
                                 showMsg(
                                   err.response?.data?.error ||
-                                    "Error deactivating product",
+                                    "Error deleting product",
                                   "error",
                                 );
                               } finally {
@@ -1872,7 +1955,7 @@ const CategoryManager = () => {
                               }
                             }}
                           >
-                            Deactivate
+                            Delete
                           </button>
                         )}
                       </div>
@@ -2002,7 +2085,8 @@ const CategoryManager = () => {
       {showManagerAddProduct && isManager && (
         <ManagerAddProductModal
           categoryId={parentId}
-          onSaved={() => loadItems(parentId)}
+          branchId={user?.branchId}
+          onSaved={() => loadItems(parentId, selectedBranchId)}
           onClose={() => setShowManagerAddProduct(false)}
           showMsg={showMsg}
         />

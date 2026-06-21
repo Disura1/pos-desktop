@@ -13,6 +13,10 @@ export const getProductsByCategoryAndBranch = (catId, branchId) =>
   apiClient
     .get(`/products/category/${catId}/branch`, { params: { branchId } })
     .then((r) => r.data);
+export const getProductsByCategoryWithStock = (catId, params) =>
+  apiClient
+    .get(`/products/category/${catId}/with-stock`, { params })
+    .then((r) => r.data);
 export const getVariants = (productId) =>
   apiClient.get(`/products/${productId}/variants`).then((r) => r.data);
 export const getVariantsByBranch = (productId, branchId) =>
