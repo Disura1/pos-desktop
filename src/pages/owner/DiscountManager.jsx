@@ -7,6 +7,53 @@ import {
 } from "../../services/discountService";
 import { fmtCurrency } from "../../utils/formatters";
 
+// ── Non-blocking confirm dialog (replaces window.confirm) ──────────────────
+const ConfirmDialog = ({ message, onConfirm, onCancel }) => (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.55)",
+      zIndex: 10000,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+  >
+    <div
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius)",
+        padding: "28px 32px",
+        maxWidth: 400,
+        width: "90%",
+        boxShadow: "0 8px 40px rgba(0,0,0,0.4)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 15,
+          fontWeight: 600,
+          marginBottom: 20,
+          lineHeight: 1.5,
+          whiteSpace: "pre-line",
+        }}
+      >
+        {message}
+      </div>
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+        <button className="btn btn-secondary" onClick={onCancel}>
+          Cancel
+        </button>
+        <button className="btn btn-danger" onClick={onConfirm}>
+          Disable
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 const empty = {
   name: "",
   type: "percentage",
@@ -22,6 +69,22 @@ const DiscountManager = () => {
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState({ text: "", type: "" });
+  const [confirmDialog, setConfirmDialog] = useState(null);
+
+  const confirm = (message) =>
+    new Promise((resolve) => {
+      setConfirmDialog({
+        message,
+        onConfirm: () => {
+          setConfirmDialog(null);
+          resolve(true);
+        },
+        onCancel: () => {
+          setConfirmDialog(null);
+          resolve(false);
+        },
+      });
+    });
 
   const load = () => getAllDiscounts().then(setDiscounts).catch(console.error);
   useEffect(() => {
@@ -67,13 +130,24 @@ const DiscountManager = () => {
   };
 
   const handleDelete = async (d) => {
-    if (!window.confirm(`Deactivate discount "${d.name}"?`)) return;
-    await deleteDiscount(d.id);
-    load();
+    const ok = await confirm(`Deactivate discount "${d.name}"?`);
+    if (!ok) return;
+    try {
+      await deleteDiscount(d.id);
+      showMsg(`"${d.name}" deactivated.`);
+      load();
+    } catch (err) {
+      showMsg(
+        err.response?.data?.error || "Error deactivating discount",
+        "danger",
+      );
+    }
   };
 
   return (
     <div className="page-content">
+      {confirmDialog && <ConfirmDialog {...confirmDialog} />}
+
       <div
         style={{
           display: "flex",
