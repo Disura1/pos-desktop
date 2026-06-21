@@ -1281,8 +1281,8 @@ const CategoryManager = () => {
                 )}
                 {/* Manager: show all branches stock */}
                 {isManager && <th>Stock (All Branches)</th>}
-                {/* Manager only: actions column */}
-                {isManager && <th>Actions</th>}
+                {/* Actions column — visible if manager or owner */}
+                {(isManager || isOwner) && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -1527,29 +1527,33 @@ const CategoryManager = () => {
                       </td>
                     )}
 
-                    {/* Manager only: action buttons */}
-                    {isManager && (
+                    {/* Actions column — manager can edit, owner can delete */}
+                    {(isManager || isOwner) && (
                       <td>
                         <div style={{ display: "flex", gap: 4 }}>
-                          <button
-                            className="btn btn-outline btn-sm"
-                            onClick={() => {
-                              setEditingVariant({
-                                ...v,
-                                variant_price: v.variant_price || "",
-                              });
-                              setSkuEditAutoMode(false);
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="btn btn-danger btn-sm"
-                            onClick={() => handleDeleteVariant(v.id, v.sku)}
-                            disabled={saving}
-                          >
-                            Delete
-                          </button>
+                          {isManager && (
+                            <button
+                              className="btn btn-outline btn-sm"
+                              onClick={() => {
+                                setEditingVariant({
+                                  ...v,
+                                  variant_price: v.variant_price || "",
+                                });
+                                setSkuEditAutoMode(false);
+                              }}
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {isOwner && (
+                            <button
+                              className="btn btn-danger btn-sm"
+                              onClick={() => handleDeleteVariant(v.id, v.sku)}
+                              disabled={saving}
+                            >
+                              Delete
+                            </button>
+                          )}
                         </div>
                       </td>
                     )}
@@ -1744,11 +1748,11 @@ const CategoryManager = () => {
                 {cat.name}
               </div>
 
-              {/* Edit/Delete only for manager */}
-              {isManager && (
-                <div
-                  style={{ display: "flex", gap: 6, justifyContent: "center" }}
-                >
+              {/* Edit — manager only. Delete — owner only */}
+              <div
+                style={{ display: "flex", gap: 6, justifyContent: "center" }}
+              >
+                {isManager && (
                   <button
                     className="btn btn-outline btn-sm"
                     onClick={(e) => {
@@ -1760,6 +1764,8 @@ const CategoryManager = () => {
                   >
                     Edit
                   </button>
+                )}
+                {isOwner && (
                   <button
                     className="btn btn-danger btn-sm"
                     onClick={(e) => {
@@ -1771,8 +1777,8 @@ const CategoryManager = () => {
                   >
                     Delete
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -1822,51 +1828,52 @@ const CategoryManager = () => {
                           Variants
                         </button>
 
-                        {/* Edit / Delete — manager only */}
+                        {/* Edit — manager only */}
                         {isManager && (
-                          <>
-                            <button
-                              className="btn btn-outline btn-sm"
-                              onClick={() => {
-                                setItemData({
-                                  id: item.id,
-                                  name: item.name || "",
-                                  base_price: item.base_price || "",
-                                  description: item.description || "",
-                                });
-                                setEditMode(true);
-                                setShowItemModal(true);
-                              }}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="btn btn-danger btn-sm"
-                              disabled={saving}
-                              onClick={async () => {
-                                const ok = await confirm(
-                                  `Delete "${item.name}"?\n\nThis will also remove all its variants and stock records.`,
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() => {
+                              setItemData({
+                                id: item.id,
+                                name: item.name || "",
+                                base_price: item.base_price || "",
+                                description: item.description || "",
+                              });
+                              setEditMode(true);
+                              setShowItemModal(true);
+                            }}
+                          >
+                            Edit
+                          </button>
+                        )}
+                        {/* Delete — owner only */}
+                        {isOwner && (
+                          <button
+                            className="btn btn-danger btn-sm"
+                            disabled={saving}
+                            onClick={async () => {
+                              const ok = await confirm(
+                                `Delete "${item.name}"?\n\nThis will also remove all its variants and stock records.`,
+                              );
+                              if (!ok) return;
+                              setSaving(true);
+                              try {
+                                await deleteProduct(item.id);
+                                await loadItems(parentId, selectedBranchId);
+                                showMsg(`"${item.name}" deleted.`);
+                              } catch (err) {
+                                showMsg(
+                                  err.response?.data?.error ||
+                                    "Error deleting product",
+                                  "error",
                                 );
-                                if (!ok) return;
-                                setSaving(true);
-                                try {
-                                  await deleteProduct(item.id);
-                                  await loadItems(parentId);
-                                  showMsg(`"${item.name}" deleted.`);
-                                } catch (err) {
-                                  showMsg(
-                                    err.response?.data?.error ||
-                                      "Error deleting product",
-                                    "error",
-                                  );
-                                } finally {
-                                  setSaving(false);
-                                }
-                              }}
-                            >
-                              Delete
-                            </button>
-                          </>
+                              } finally {
+                                setSaving(false);
+                              }
+                            }}
+                          >
+                            Delete
+                          </button>
                         )}
                       </div>
                     </td>
