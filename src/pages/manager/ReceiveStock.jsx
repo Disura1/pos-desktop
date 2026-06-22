@@ -685,7 +685,7 @@ const ReceiveStock = () => {
                           {fmtCurrency(row.price)}
                         </span>
                       </div>
-                      {row.stock_qty === 0 && row.total_stock > 0 && (
+                      {!row.is_active_here && (
                         <div style={{ fontSize: 11, color: "var(--pink)", marginTop: 3, fontWeight: 600 }}>
                           ℹ️ Not yet stocked at this branch — receiving will activate it here
                         </div>

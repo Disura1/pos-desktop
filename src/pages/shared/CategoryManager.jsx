@@ -851,13 +851,6 @@ const CategoryManager = () => {
     loadItems(parentId);
   }, [parentId]);
 
-  // Reload variants when owner switches branch while on variant page
-  useEffect(() => {
-    if (!isOwner || !selectedProduct || !selectedBranchId) return;
-    getVariantsByBranch(selectedProduct.id, selectedBranchId).then(setVariants);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedBranchId]);
-
   // ── Manager SKU auto ──
   useEffect(() => {
     if (!skuAutoMode || !selectedProduct) return;
@@ -1009,10 +1002,9 @@ const CategoryManager = () => {
     // Normalize id since the new with-stock endpoint returns product_id, not id
     const normalized = { ...product, id: product.product_id || product.id };
     setSelectedProduct(normalized);
-    const v =
-      isOwner && selectedBranchId
-        ? await getVariantsByBranch(normalized.id, selectedBranchId)
-        : await getVariants(normalized.id);
+    // Both owner and manager use getVariants — shows all branches' stock.
+    // getVariantsByBranch was filtering to one branch only, which was wrong for owner.
+    const v = await getVariants(normalized.id);
     setVariants(v);
     setEditingVariant(null);
     setSkuEditAutoMode(false);
