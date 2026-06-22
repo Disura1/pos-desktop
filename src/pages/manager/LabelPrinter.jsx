@@ -145,9 +145,10 @@ const LabelPrinter = () => {
     setVariants([]);
     try {
       const data = await searchProducts(q, branchId);
-      // Group by product
+      // Only show products that have at least one variant active+stocked at this branch
+      const dataForThisBranch = (data || []).filter((row) => row.stock_qty > 0);
       const grouped = {};
-      (data || []).forEach((row) => {
+      dataForThisBranch.forEach((row) => {
         if (!grouped[row.product_id]) {
           grouped[row.product_id] = {
             product_id: row.product_id,
@@ -158,7 +159,7 @@ const LabelPrinter = () => {
       });
       setResults(Object.values(grouped));
       setSearched(true);
-      if (!data || data.length === 0) showMsg(`No products found for "${q}"`, "error");
+      if (dataForThisBranch.length === 0) showMsg(`No products in stock at your branch for "${q}"`, "error");
     } catch (err) {
       showMsg("Search failed: " + err.message, "error");
       setSearched(true);

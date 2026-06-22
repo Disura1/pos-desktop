@@ -821,24 +821,15 @@ const CategoryManager = () => {
   };
 
   const loadCategories = () => getCategories().then(setAllCats);
-  const loadItems = (id, branchId) => {
+  const loadItems = (id) => {
     if (!id) {
       setItems([]);
       return;
     }
-    if (isOwner) {
-      // Owner: show stock per branch + total across all branches
-      getProductsByCategoryWithStock(id, { allBranches: "true" }).then((d) =>
-        setItems(d || []),
-      );
-    } else if (isManager && branchId) {
-      // Manager: show stock for their own branch
-      getProductsByCategoryWithStock(id, { branchId }).then((d) =>
-        setItems(d || []),
-      );
-    } else {
-      getProductsByCategory(id).then((d) => setItems(d || []));
-    }
+    // Both Owner and Manager see stock broken down by branch + total
+    getProductsByCategoryWithStock(id, { allBranches: "true" }).then((d) =>
+      setItems(d || []),
+    );
   };
 
   // Load branches for owner filter
@@ -857,8 +848,8 @@ const CategoryManager = () => {
     loadCategories();
   }, []);
   useEffect(() => {
-    loadItems(parentId, selectedBranchId);
-  }, [parentId, selectedBranchId]);
+    loadItems(parentId);
+  }, [parentId]);
 
   // Reload variants when owner switches branch while on variant page
   useEffect(() => {
@@ -1055,71 +1046,6 @@ const CategoryManager = () => {
   };
   const breadcrumb = buildBreadcrumb();
 
-  // ── Branch filter bar (owner only) ──
-  const BranchFilterBar = () => {
-    if (!isOwner || branches.length === 0) return null;
-    return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          background: "var(--card)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--radius)",
-          padding: "10px 16px",
-          marginBottom: 18,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--text-sub)",
-            flexShrink: 0,
-          }}
-        >
-          🏪 Viewing branch:
-        </span>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {branches.map((b) => (
-            <button
-              key={b.id}
-              onClick={() => setSelectedBranchId(b.id)}
-              style={{
-                padding: "5px 14px",
-                fontSize: 12,
-                fontWeight: 600,
-                border: `2px solid ${selectedBranchId === b.id ? "var(--pink)" : "var(--border)"}`,
-                borderRadius: "var(--radius-sm)",
-                cursor: "pointer",
-                background:
-                  selectedBranchId === b.id
-                    ? "var(--pink-light)"
-                    : "var(--card)",
-                color:
-                  selectedBranchId === b.id
-                    ? "var(--pink-dark)"
-                    : "var(--text-sub)",
-                transition: "all 0.12s",
-              }}
-            >
-              {b.branch_name}
-            </button>
-          ))}
-        </div>
-        <div
-          style={{
-            marginLeft: "auto",
-            fontSize: 11,
-            color: "var(--text-muted)",
-            fontStyle: "italic",
-          }}
-        ></div>
-      </div>
-    );
-  };
-
   // ══════════════════════════════════════════════════════════════════════
   // VARIANT PAGE
   // ══════════════════════════════════════════════════════════════════════
@@ -1138,9 +1064,6 @@ const CategoryManager = () => {
             {msg.text}
           </div>
         )}
-
-        {/* Branch filter bar — owner only */}
-        {isOwner && <BranchFilterBar />}
 
         {/* Header */}
         <div
@@ -1631,9 +1554,6 @@ const CategoryManager = () => {
         </div>
       )}
 
-      {/* Branch filter bar — owner only */}
-      {isOwner && <BranchFilterBar />}
-
       {/* Header */}
       <div
         style={{
@@ -1831,9 +1751,8 @@ const CategoryManager = () => {
                   <th>Product Name</th>
                   <th>Description</th>
                   <th>Base Price</th>
-                  {isManager && <th>Stock (This Branch)</th>}
-                  {isOwner && <th>Stock by Branch</th>}
-                  {isOwner && <th>Total Stock</th>}
+                  <th>Stock by Branch</th>
+                  <th>Total Stock</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -1848,58 +1767,31 @@ const CategoryManager = () => {
                       {fmtCurrency(item.base_price)}
                     </td>
 
-                    {/* Manager: stock for their own branch */}
-                    {isManager && (
-                      <td>
-                        {item.branch_stock != null ? (
-                          <span
-                            className={`badge ${
-                              item.branch_stock == 0
-                                ? "badge-danger"
-                                : "badge-success"
-                            }`}
-                          >
-                            {item.branch_stock}
-                          </span>
-                        ) : (
-                          <span
-                            style={{ color: "var(--text-muted)", fontSize: 12 }}
-                          >
-                            —
-                          </span>
-                        )}
-                      </td>
-                    )}
+                    {/* Stock per branch — same for both roles */}
+                    <td style={{ fontSize: 11 }}>
+                      {Array.isArray(item.stock) && item.stock.length > 0 ? (
+                        item.stock.map((s) => (
+                          <div key={s.branch_id}>
+                            {s.branch_name}: <strong>{s.stock_qty}</strong>
+                          </div>
+                        ))
+                      ) : (
+                        <span style={{ color: "var(--text-muted)" }}>—</span>
+                      )}
+                    </td>
 
-                    {/* Owner: stock per branch */}
-                    {isOwner && (
-                      <td style={{ fontSize: 11 }}>
-                        {Array.isArray(item.stock) && item.stock.length > 0 ? (
-                          item.stock.map((s) => (
-                            <div key={s.branch_id}>
-                              {s.branch_name}: <strong>{s.stock_qty}</strong>
-                            </div>
-                          ))
-                        ) : (
-                          <span style={{ color: "var(--text-muted)" }}>—</span>
-                        )}
-                      </td>
-                    )}
-
-                    {/* Owner: total */}
-                    {isOwner && (
-                      <td>
-                        <span
-                          className={`badge ${
-                            (item.total_stock || 0) == 0
-                              ? "badge-danger"
-                              : "badge-success"
-                          }`}
-                        >
-                          {item.total_stock || 0}
-                        </span>
-                      </td>
-                    )}
+                    {/* Total stock — same for both roles */}
+                    <td>
+                      <span
+                        className={`badge ${
+                          (item.total_stock || 0) == 0
+                            ? "badge-danger"
+                            : "badge-success"
+                        }`}
+                      >
+                        {item.total_stock || 0}
+                      </span>
+                    </td>
 
                     <td>
                       <div style={{ display: "flex", gap: 6 }}>
@@ -1942,7 +1834,7 @@ const CategoryManager = () => {
                               setSaving(true);
                               try {
                                 await deleteProduct(item.product_id || item.id);
-                                await loadItems(parentId, selectedBranchId);
+                                await loadItems(parentId);
                                 showMsg(`"${item.name}" deleted.`);
                               } catch (err) {
                                 showMsg(
@@ -2086,7 +1978,7 @@ const CategoryManager = () => {
         <ManagerAddProductModal
           categoryId={parentId}
           branchId={user?.branchId}
-          onSaved={() => loadItems(parentId, selectedBranchId)}
+          onSaved={() => loadItems(parentId)}
           onClose={() => setShowManagerAddProduct(false)}
           showMsg={showMsg}
         />

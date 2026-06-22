@@ -665,7 +665,7 @@ const ReceiveStock = () => {
                         {row.barcode ? ` · Barcode: ${row.barcode}` : ""}
                       </div>
                       <div style={{ fontSize: 12, marginTop: 3 }}>
-                        Stock:{" "}
+                        This branch:{" "}
                         <strong
                           style={{
                             color:
@@ -676,12 +676,20 @@ const ReceiveStock = () => {
                         >
                           {row.stock_qty}
                         </strong>
+                        <span style={{ color: "var(--text-muted)", marginLeft: 10 }}>
+                          All branches: <strong>{row.total_stock || 0}</strong>
+                        </span>
                         <span
-                          style={{ color: "var(--text-muted)", marginLeft: 8 }}
+                          style={{ color: "var(--text-muted)", marginLeft: 10 }}
                         >
                           {fmtCurrency(row.price)}
                         </span>
                       </div>
+                      {row.stock_qty === 0 && row.total_stock > 0 && (
+                        <div style={{ fontSize: 11, color: "var(--pink)", marginTop: 3, fontWeight: 600 }}>
+                          ℹ️ Not yet stocked at this branch — receiving will activate it here
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
