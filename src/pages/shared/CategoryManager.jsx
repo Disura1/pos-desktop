@@ -1225,64 +1225,13 @@ const CategoryManager = () => {
                   /* ── Inline edit row (manager only) ── */
                   <tr key={v.id} style={{ background: "rgba(233,30,99,0.04)" }}>
                     <td style={{ minWidth: 170 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                          marginBottom: 4,
-                        }}
-                      >
-                        {skuEditAutoMode && (
-                          <span
-                            style={{
-                              fontSize: 10,
-                              background: "var(--success-bg)",
-                              color: "var(--success)",
-                              padding: "1px 6px",
-                              borderRadius: 10,
-                              fontWeight: 700,
-                            }}
-                          >
-                            AUTO
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => setSkuEditAutoMode(true)}
-                          style={{
-                            fontSize: 10,
-                            background: "none",
-                            border: "1px solid var(--border)",
-                            borderRadius: 4,
-                            padding: "1px 6px",
-                            cursor: "pointer",
-                            color: "var(--text-sub)",
-                          }}
-                        >
-                          🔄 Auto
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSkuEditAutoMode(false)}
-                          style={{
-                            fontSize: 10,
-                            background: "none",
-                            border: "1px solid var(--border)",
-                            borderRadius: 4,
-                            padding: "1px 6px",
-                            cursor: "pointer",
-                            color: "var(--text-sub)",
-                          }}
-                        >
-                          ✏️ Manual
-                        </button>
+                      <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 3 }}>
+                        SKU — auto from size/color, or type to override
                       </div>
                       <input
                         className="form-control"
                         style={{ fontSize: 12, fontFamily: "monospace" }}
                         value={editingVariant.sku}
-                        readOnly={skuEditAutoMode}
                         onChange={(e) => {
                           setSkuEditAutoMode(false);
                           setEditingVariant((prev) => ({
@@ -1291,15 +1240,20 @@ const CategoryManager = () => {
                           }));
                         }}
                       />
+                      {skuEditAutoMode === false && (
+                        <button
+                          type="button"
+                          style={{ marginTop: 3, fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--pink)", textDecoration: "underline", padding: 0 }}
+                          onClick={() => setSkuEditAutoMode(true)}
+                        >
+                          🔄 Switch back to auto
+                        </button>
+                      )}
                     </td>
-                    <td>
+                    <td style={{ minWidth: 130 }}>
                       <input
                         className="form-control"
-                        style={{
-                          fontSize: 12,
-                          fontFamily: "monospace",
-                          minWidth: 110,
-                        }}
+                        style={{ fontSize: 12, fontFamily: "monospace" }}
                         value={editingVariant.barcode || ""}
                         onChange={(e) =>
                           setEditingVariant((prev) => ({
@@ -1308,6 +1262,17 @@ const CategoryManager = () => {
                           }))
                         }
                       />
+                      {editingVariant.sku && editingVariant.barcode !== editingVariant.sku && (
+                        <button
+                          type="button"
+                          style={{ marginTop: 3, fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--pink)", textDecoration: "underline", padding: 0 }}
+                          onClick={() =>
+                            setEditingVariant((prev) => ({ ...prev, barcode: prev.sku }))
+                          }
+                        >
+                          🔄 Use SKU as barcode
+                        </button>
+                      )}
                     </td>
                     <td>
                       <input
