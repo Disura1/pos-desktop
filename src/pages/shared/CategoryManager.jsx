@@ -1213,24 +1213,14 @@ const CategoryManager = () => {
                 <th>Size</th>
                 <th>Color</th>
                 <th>Variant Price</th>
-                {/* Owner: show selected branch stock only */}
-                {isOwner && (
-                  <th>Stock ({selectedBranch?.branch_name || "—"})</th>
-                )}
-                {/* Manager: show all branches stock */}
-                {isManager && <th>Stock (All Branches)</th>}
+                {/* Both owner and manager: show all branches stock */}
+                <th>Stock (All Branches)</th>
                 {/* Actions column — visible if manager or owner */}
                 {(isManager || isOwner) && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
               {variants.map((v) => {
-                // For owner — find stock for selected branch
-                const branchStock =
-                  isOwner && Array.isArray(v.stock)
-                    ? v.stock.find((s) => s.branch_id === selectedBranchId)
-                    : null;
-
                 return editingVariant?.id === v.id ? (
                   /* ── Inline edit row (manager only) ── */
                   <tr key={v.id} style={{ background: "rgba(233,30,99,0.04)" }}>
@@ -1427,43 +1417,16 @@ const CategoryManager = () => {
                       )}
                     </td>
 
-                    {/* Owner: show selected branch stock only */}
-                    {isOwner && (
-                      <td>
-                        {branchStock != null ? (
-                          <span
-                            className={`badge ${
-                              branchStock.stock_qty === 0
-                                ? "badge-danger"
-                                : branchStock.stock_qty <= 5
-                                  ? "badge-warning"
-                                  : "badge-success"
-                            }`}
-                          >
-                            {branchStock.stock_qty}
-                          </span>
-                        ) : (
-                          <span
-                            style={{ color: "var(--text-muted)", fontSize: 12 }}
-                          >
-                            —
-                          </span>
-                        )}
-                      </td>
-                    )}
-
-                    {/* Manager: show all branches */}
-                    {isManager && (
-                      <td style={{ fontSize: 11 }}>
-                        {Array.isArray(v.stock)
-                          ? v.stock.map((s) => (
-                              <div key={s.branch_id}>
-                                {s.branch_name}: <strong>{s.stock_qty}</strong>
-                              </div>
-                            ))
-                          : "—"}
-                      </td>
-                    )}
+                    {/* Both owner and manager: show all branches stock */}
+                    <td style={{ fontSize: 11 }}>
+                      {Array.isArray(v.stock) && v.stock.length > 0
+                        ? v.stock.map((s) => (
+                            <div key={s.branch_id}>
+                              {s.branch_name}: <strong>{s.stock_qty}</strong>
+                            </div>
+                          ))
+                        : <span style={{ color: "var(--text-muted)" }}>—</span>}
+                    </td>
 
                     {/* Actions column — manager can edit, owner can delete */}
                     {(isManager || isOwner) && (

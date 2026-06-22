@@ -3,55 +3,9 @@ import { useAuth } from "../../context/AuthContext";
 import {
   searchProducts,
   getVariants,
-  deleteProduct,
+  updateProduct,
 } from "../../services/productService";
 import { fmtCurrency } from "../../utils/formatters";
-
-// ── Non-blocking confirm dialog (replaces window.confirm) ──────────────────
-const ConfirmDialog = ({ message, onConfirm, onCancel }) => (
-  <div
-    style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(0,0,0,0.55)",
-      zIndex: 10000,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-    }}
-  >
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--radius)",
-        padding: "28px 32px",
-        maxWidth: 400,
-        width: "90%",
-        boxShadow: "0 8px 40px rgba(0,0,0,0.4)",
-      }}
-    >
-      <div
-        style={{
-          fontSize: 15,
-          fontWeight: 600,
-          marginBottom: 20,
-          lineHeight: 1.5,
-        }}
-      >
-        {message}
-      </div>
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-        <button className="btn btn-secondary" onClick={onCancel}>
-          Cancel
-        </button>
-        <button className="btn btn-danger" onClick={onConfirm}>
-          Delete
-        </button>
-      </div>
-    </div>
-  </div>
-);
 
 const ProductSearch = () => {
   const { user } = useAuth();
@@ -61,34 +15,21 @@ const ProductSearch = () => {
   const [results, setResults] = useState([]);
   const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [variants, setVariants] = useState([]);
   const [loadingVariants, setLoadingVariants] = useState(false);
   const [msg, setMsg] = useState({ text: "", type: "success" });
-  const [confirmDialog, setConfirmDialog] = useState(null); // { message, onConfirm }
+
+  // Edit modal state
+  const [editModal, setEditModal] = useState(null); // { product_id, name, base_price, description }
+  const [editSaving, setEditSaving] = useState(false);
+
   const inputRef = useRef(null);
 
   const showMsg = (text, type = "success") => {
     setMsg({ text, type });
     setTimeout(() => setMsg({ text: "", type: "success" }), 3500);
   };
-
-  // Non-blocking confirm — returns a Promise that resolves true/false
-  const confirm = (message) =>
-    new Promise((resolve) => {
-      setConfirmDialog({
-        message,
-        onConfirm: () => {
-          setConfirmDialog(null);
-          resolve(true);
-        },
-        onCancel: () => {
-          setConfirmDialog(null);
-          resolve(false);
-        },
-      });
-    });
 
   const handleSearch = async () => {
     const q = query.trim();
@@ -120,43 +61,40 @@ const ProductSearch = () => {
     if (e.key === "Enter") handleSearch();
   };
 
-  const handleDeleteFromResults = async (product) => {
-    const ok = await confirm(
-      `Delete "${product.name}"?\n\nThis will also remove all its variants and stock records.`,
-    );
-    if (!ok) return;
-    setDeleting(true);
-    try {
-      await deleteProduct(product.product_id);
-      setResults((prev) =>
-        prev.filter((r) => r.product_id !== product.product_id),
-      );
-      showMsg(`"${product.name}" deleted successfully.`);
-    } catch (err) {
-      showMsg(err.response?.data?.error || "Error deleting product", "error");
-    } finally {
-      setDeleting(false);
+  const handleEditSave = async () => {
+    if (!editModal?.name?.trim() || !editModal?.base_price) {
+      showMsg("Product name and base price are required", "error");
+      return;
     }
-  };
-
-  const handleDeleteFromDetail = async () => {
-    const ok = await confirm(
-      `Delete "${selectedProduct.name}"?\n\nThis will also remove all its variants and stock records.`,
-    );
-    if (!ok) return;
-    setDeleting(true);
+    setEditSaving(true);
     try {
-      await deleteProduct(selectedProduct.product_id);
+      await updateProduct(editModal.product_id, {
+        name: editModal.name,
+        base_price: parseFloat(editModal.base_price),
+        description: editModal.description || "",
+      });
+      // Update results list with new name/price
       setResults((prev) =>
-        prev.filter((r) => r.product_id !== selectedProduct.product_id),
+        prev.map((r) =>
+          r.product_id === editModal.product_id
+            ? { ...r, name: editModal.name, base_price: editModal.base_price }
+            : r,
+        ),
       );
-      setSelectedProduct(null);
-      setVariants([]);
-      showMsg(`"${selectedProduct.name}" deleted successfully.`);
+      // If this product is open in detail view, update it too
+      if (selectedProduct?.product_id === editModal.product_id) {
+        setSelectedProduct((prev) => ({
+          ...prev,
+          name: editModal.name,
+          base_price: editModal.base_price,
+        }));
+      }
+      showMsg(`"${editModal.name}" updated successfully.`);
+      setEditModal(null);
     } catch (err) {
-      showMsg(err.response?.data?.error || "Error deleting product", "error");
+      showMsg(err.response?.data?.error || "Error updating product", "error");
     } finally {
-      setDeleting(false);
+      setEditSaving(false);
     }
   };
 
@@ -192,11 +130,74 @@ const ProductSearch = () => {
     }
   };
 
+  // ── Edit Modal ─────────────────────────────────────────────────────────────
+  const EditModal = () => {
+    if (!editModal) return null;
+    return (
+      <div
+        className="modal-overlay"
+        onClick={(e) => e.target === e.currentTarget && setEditModal(null)}
+      >
+        <div className="modal">
+          <div className="modal-title">✏️ Edit Product</div>
+          <div className="form-group">
+            <label className="form-label">Product Name *</label>
+            <input
+              className="form-control"
+              value={editModal.name}
+              onChange={(e) =>
+                setEditModal({ ...editModal, name: e.target.value })
+              }
+              autoFocus
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Base Price (LKR) *</label>
+            <input
+              className="form-control"
+              type="number"
+              step="0.01"
+              value={editModal.base_price}
+              onChange={(e) =>
+                setEditModal({ ...editModal, base_price: e.target.value })
+              }
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Description</label>
+            <textarea
+              className="form-control"
+              value={editModal.description || ""}
+              onChange={(e) =>
+                setEditModal({ ...editModal, description: e.target.value })
+              }
+            />
+          </div>
+          <div className="modal-footer">
+            <button
+              className="btn btn-secondary"
+              onClick={() => setEditModal(null)}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleEditSave}
+              disabled={editSaving}
+            >
+              {editSaving ? <span className="spinner" /> : "Save Product"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ── Detail view ────────────────────────────────────────────────────────────
   if (selectedProduct) {
     return (
       <div className="page-content">
-        {confirmDialog && <ConfirmDialog {...confirmDialog} />}
+        <EditModal />
 
         {msg.text && (
           <div
@@ -226,18 +227,17 @@ const ProductSearch = () => {
               ⬅ Back to Search Results
             </button>
             <button
-              className="btn btn-danger btn-sm"
-              disabled={deleting}
-              onClick={handleDeleteFromDetail}
+              className="btn btn-outline btn-sm"
+              onClick={() =>
+                setEditModal({
+                  product_id: selectedProduct.product_id,
+                  name: selectedProduct.name,
+                  base_price: selectedProduct.base_price,
+                  description: selectedProduct.description || "",
+                })
+              }
             >
-              {deleting ? (
-                <>
-                  <span className="spinner" style={{ width: 12, height: 12 }} />{" "}
-                  Deleting...
-                </>
-              ) : (
-                "🗑 Delete Product"
-              )}
+              ✏️ Edit Product
             </button>
           </div>
           <h2 style={{ margin: 0, fontWeight: 800, fontSize: 20 }}>
@@ -375,7 +375,7 @@ const ProductSearch = () => {
   // ── Search view ────────────────────────────────────────────────────────────
   return (
     <div className="page-content">
-      {confirmDialog && <ConfirmDialog {...confirmDialog} />}
+      <EditModal />
 
       {msg.text && (
         <div
@@ -402,7 +402,7 @@ const ProductSearch = () => {
         <button
           className="btn btn-primary"
           onClick={handleSearch}
-          disabled={searching || deleting || !query.trim()}
+          disabled={searching || !query.trim()}
           style={{ minWidth: 100 }}
         >
           {searching ? (
@@ -414,7 +414,6 @@ const ProductSearch = () => {
         {searched && (
           <button
             className="btn btn-ghost"
-            disabled={deleting}
             onClick={() => {
               setQuery("");
               setResults([]);
@@ -503,24 +502,22 @@ const ProductSearch = () => {
                       <div style={{ display: "flex", gap: 6 }}>
                         <button
                           className="btn btn-primary btn-sm"
-                          disabled={deleting}
                           onClick={() => openProductDetail(product)}
                         >
                           View Details
                         </button>
                         <button
-                          className="btn btn-danger btn-sm"
-                          disabled={deleting}
-                          onClick={() => handleDeleteFromResults(product)}
+                          className="btn btn-outline btn-sm"
+                          onClick={() =>
+                            setEditModal({
+                              product_id: product.product_id,
+                              name: product.name,
+                              base_price: product.base_price,
+                              description: product.description || "",
+                            })
+                          }
                         >
-                          {deleting ? (
-                            <span
-                              className="spinner"
-                              style={{ width: 12, height: 12 }}
-                            />
-                          ) : (
-                            "Delete"
-                          )}
+                          Edit
                         </button>
                       </div>
                     </td>
