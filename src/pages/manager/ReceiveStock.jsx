@@ -13,6 +13,7 @@ import {
 } from "../../services/productService";
 import { getCategories } from "../../services/categoryService";
 import { fmtCurrency, fmtDateTime } from "../../utils/formatters";
+import { printLabel } from '../../utils/printLabel';
 
 // ── Non-blocking confirm dialog ────────────────────────────────────────────
 const ConfirmDialog = ({
@@ -93,79 +94,6 @@ const computeSKU = (productName, size, color, existingSkus = []) => {
   let n = 2;
   while (existingSkus.includes(`${base}-${n}`)) n++;
   return `${base}-${n}`;
-};
-
-// ── Label print helper ─────────────────────────────────────────────────────
-const printLabel = (items) => {
-  // items = [{ productName, sku, barcode, size, color, price, copies }]
-  const labelHtml = items
-    .flatMap((item) =>
-      Array.from({ length: item.copies || 1 }).map(
-        () => `
-      <div class="label">
-        <div class="shop-name">Teen Girl</div>
-        <div class="product-name">${item.productName}</div>
-        ${item.size ? `<div class="detail">Size: ${item.size}</div>` : ""}
-        ${item.color ? `<div class="detail">Color: ${item.color}</div>` : ""}
-        <div class="price">LKR ${parseFloat(item.price).toLocaleString("en-LK", { minimumFractionDigits: 2 })}</div>
-        <svg class="barcode" id="bc-${item.barcode}"></svg>
-        <div class="sku">${item.barcode}</div>
-      </div>
-    `,
-      ),
-    )
-    .join("");
-
-  const win = window.open("", "_blank", "width=800,height=600");
-  win.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Print Labels</title>
-      <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #fff; }
-        .page { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; }
-        .label {
-          width: 200px; border: 1px solid #ccc; border-radius: 6px;
-          padding: 10px 8px; text-align: center; page-break-inside: avoid;
-        }
-        .shop-name   { font-size: 10px; font-weight: 700; color: #e91e8c; text-transform: uppercase; letter-spacing: 1px; }
-        .product-name{ font-size: 11px; font-weight: 700; margin: 4px 0 2px; }
-        .detail      { font-size: 10px; color: #555; }
-        .price       { font-size: 13px; font-weight: 900; margin: 5px 0; color: #111; }
-        .barcode     { width: 100%; height: 50px; margin: 4px 0 2px; }
-        .sku         { font-size: 9px; font-family: monospace; color: #444; }
-        @media print { body { margin: 0; } .no-print { display: none; } }
-      </style>
-    </head>
-    <body>
-      <div class="no-print" style="padding:12px;text-align:center">
-        <button onclick="window.print()" style="padding:8px 24px;font-size:14px;background:#e91e8c;color:#fff;border:none;border-radius:6px;cursor:pointer">
-          🖨 Print Labels
-        </button>
-        <button onclick="window.close()" style="padding:8px 18px;font-size:14px;margin-left:10px;background:#eee;border:none;border-radius:6px;cursor:pointer">
-          ✕ Close
-        </button>
-      </div>
-      <div class="page">${labelHtml}</div>
-      <script>
-        window.onload = function() {
-          document.querySelectorAll('.barcode').forEach(function(el) {
-            try {
-              JsBarcode(el, el.id.replace('bc-',''), {
-                format: 'CODE128', displayValue: false,
-                width: 1.5, height: 40, margin: 0
-              });
-            } catch(e) {}
-          });
-        };
-      </script>
-    </body>
-    </html>
-  `);
-  win.document.close();
 };
 
 // ── Main component ─────────────────────────────────────────────────────────

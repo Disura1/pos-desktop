@@ -6,102 +6,7 @@ import {
   getVariants,
 } from "../../services/productService";
 import { fmtCurrency } from "../../utils/formatters";
-
-// ── Print engine ────────────────────────────────────────────────────────────
-const printLabels = (items, labelSize) => {
-  // labelSize: "small" (38x25mm), "medium" (58x40mm), "large" (100x50mm)
-  const sizes = {
-    small:  { w: 144, h: 96,  nameFontSize: 9,  priceFontSize: 11, detailFontSize: 8  },
-    medium: { w: 220, h: 152, nameFontSize: 11, priceFontSize: 14, detailFontSize: 10 },
-    large:  { w: 378, h: 189, nameFontSize: 13, priceFontSize: 17, detailFontSize: 11 },
-  };
-  const s = sizes[labelSize] || sizes.medium;
-
-  const labelHtml = items
-    .flatMap((item) =>
-      Array.from({ length: item.copies }).map(
-        () => `
-        <div class="label" style="width:${s.w}px;height:${s.h}px">
-          <div class="shop"  style="font-size:${s.detailFontSize - 1}px">Teen Girl Boutique</div>
-          <div class="name"  style="font-size:${s.nameFontSize}px">${item.productName}</div>
-          <div class="meta"  style="font-size:${s.detailFontSize}px">
-            ${item.size  ? `<span>Size: ${item.size}</span>`  : ""}
-            ${item.color ? `<span>${item.color}</span>` : ""}
-          </div>
-          <div class="price" style="font-size:${s.priceFontSize}px">
-            LKR ${parseFloat(item.price || 0).toLocaleString("en-LK", { minimumFractionDigits: 2 })}
-          </div>
-          <svg class="bc" id="bc-${item.barcode}-${Math.random().toString(36).slice(2)}"></svg>
-          <div class="sku"   style="font-size:${s.detailFontSize - 1}px">${item.barcode}</div>
-        </div>
-      `
-      )
-    )
-    .join("");
-
-  const win = window.open("", "_blank", "width=900,height=650");
-  win.document.write(`
-    <!DOCTYPE html><html><head>
-    <title>Print Labels — Teen Girl</title>
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
-    <style>
-      *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:Arial,sans-serif;background:#f5f5f5}
-      .toolbar{background:#fff;border-bottom:1px solid #ddd;padding:12px 20px;display:flex;gap:12px;align-items:center}
-      .toolbar button{padding:8px 20px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600}
-      .print-btn{background:#e91e8c;color:#fff}
-      .close-btn{background:#eee;color:#333}
-      .count{font-size:13px;color:#666;margin-left:auto}
-      .page{display:flex;flex-wrap:wrap;gap:6px;padding:16px;background:#f5f5f5}
-      .label{
-        background:#fff;border:1px solid #ddd;border-radius:5px;
-        padding:6px 8px;display:flex;flex-direction:column;
-        align-items:center;justify-content:space-between;
-        text-align:center;page-break-inside:avoid;overflow:hidden;
-      }
-      .shop {color:#e91e8c;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px}
-      .name {font-weight:700;color:#111;margin:2px 0;line-height:1.2;max-width:100%;word-break:break-word}
-      .meta {color:#555;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:1px 0}
-      .price{font-weight:900;color:#111;margin:3px 0}
-      .bc  {width:90%;max-height:45px;margin:3px 0}
-      .sku {font-family:monospace;color:#555;margin-top:2px}
-      @media print{
-        body{background:#fff}
-        .toolbar{display:none}
-        .page{padding:4px;gap:4px;background:#fff}
-      }
-    </style>
-    </head><body>
-    <div class="toolbar">
-      <button class="print-btn" onclick="window.print()">🖨 Print All Labels</button>
-      <button class="close-btn" onclick="window.close()">✕ Close</button>
-      <span class="count">
-        ${items.reduce((s, i) => s + i.copies, 0)} labels · 
-        ${items.length} variant(s)
-      </span>
-    </div>
-    <div class="page">${labelHtml}</div>
-    <script>
-      window.onload = function() {
-        document.querySelectorAll('.bc').forEach(function(el) {
-          var val = el.id.replace(/^bc-/, '').replace(/-[a-z0-9]+$/, '');
-          // Remove the random suffix we appended
-          var parts = el.id.split('-');
-          parts.pop(); // remove random
-          val = parts.slice(1).join('-'); // remove "bc" prefix
-          try {
-            JsBarcode(el, val, {
-              format:'CODE128', displayValue:false,
-              width:1.4, height:38, margin:0
-            });
-          } catch(e) { el.style.display='none'; }
-        });
-      };
-    </script>
-    </body></html>
-  `);
-  win.document.close();
-};
+import { printLabel } from '../../utils/printLabel';
 
 // ── Main component ──────────────────────────────────────────────────────────
 const LabelPrinter = () => {
@@ -622,7 +527,7 @@ const LabelPrinter = () => {
                 <button
                   className="btn btn-primary btn-block btn-lg"
                   disabled={totalLabels === 0}
-                  onClick={() => printLabels(queue, labelSize)}
+                  onClick={() => printLabel(queue, labelSize)}
                   style={{ width: "100%" }}
                 >
                   🖨 Print {totalLabels} Label{totalLabels !== 1 ? "s" : ""}

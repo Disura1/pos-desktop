@@ -25,8 +25,10 @@ const MANAGER_NAV = [
 ];
 
 const CASHIER_NAV = [
-  { label: "POS / Checkout", icon: "🛒", view: "pos" },
-  { label: "Sales History", icon: "🧾", view: "cashier-history" },
+  { label: "POS / Checkout",  icon: "🛒", view: "pos" },
+  { label: "Sales History",   icon: "🧾", view: "cashier-history" },
+  { label: "Product Search",  icon: "🔍", view: "cashier-search" },
+  { label: "Products",        icon: "👗", view: "cashier-products" },
 ];
 
 const NAV_MAP = {

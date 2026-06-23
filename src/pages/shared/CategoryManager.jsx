@@ -751,6 +751,126 @@ const ManagerAddVariantModal = ({
 };
 
 // ══════════════════════════════════════════════════════════════════════════
+// SHARED: Edit Variant Modal — popup instead of inline row editing
+// ══════════════════════════════════════════════════════════════════════════
+const EditVariantModal = ({ data, productName, otherSkus, onClose, onSave, saving }) => {
+  const [form, setForm] = useState(data);
+  useEffect(() => { setForm(data); }, [data]);
+  const [skuManual, setSkuManual] = useState(false);
+
+  useEffect(() => {
+    if (skuManual) return;
+    const generated = computeSKU(productName, form.size, form.color, otherSkus);
+    if (generated) setForm((prev) => ({ ...prev, sku: generated }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.size, form.color, skuManual]);
+
+  return (
+    <div
+      className="modal-overlay"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="modal">
+        <div className="modal-title">✏️ Edit Variant — {form.sku}</div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Size</label>
+            <input
+              className="form-control"
+              value={form.size || ""}
+              onChange={(e) => setForm({ ...form, size: e.target.value })}
+              placeholder="XS / S / M / L / XL"
+              autoFocus
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Color</label>
+            <input
+              className="form-control"
+              value={form.color || ""}
+              onChange={(e) => setForm({ ...form, color: e.target.value })}
+              placeholder="Black / Red / Blue..."
+            />
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>SKU *</span>
+            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+              {skuManual ? "Manual — editing freely" : "Auto from size & color"}
+            </span>
+          </label>
+          <input
+            className="form-control"
+            style={{ fontFamily: "monospace" }}
+            value={form.sku}
+            onChange={(e) => {
+              setSkuManual(true);
+              setForm({ ...form, sku: e.target.value });
+            }}
+            placeholder="Auto-generated from size + color"
+          />
+          {skuManual && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              style={{ marginTop: 6, fontSize: 11 }}
+              onClick={() => setSkuManual(false)}
+            >
+              🔄 Switch back to auto
+            </button>
+          )}
+        </div>
+
+        <div className="form-group">
+          <label className="form-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>Barcode *</span>
+            {form.sku && form.barcode !== form.sku && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                style={{ fontSize: 11 }}
+                onClick={() => setForm({ ...form, barcode: form.sku })}
+              >
+                🔄 Use SKU as barcode
+              </button>
+            )}
+          </label>
+          <input
+            className="form-control"
+            style={{ fontFamily: "monospace" }}
+            value={form.barcode || ""}
+            onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+            placeholder="Scan or type barcode"
+          />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Variant Price (leave blank to use base price)</label>
+          <input
+            className="form-control"
+            type="number"
+            step="0.01"
+            value={form.variant_price || ""}
+            onChange={(e) => setForm({ ...form, variant_price: e.target.value })}
+            placeholder="Optional override"
+          />
+        </div>
+
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={() => onSave(form)} disabled={saving}>
+            {saving ? <span className="spinner" /> : "Save Variant"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════
 // MAIN: CategoryManager (shared — Owner & Manager)
 // ══════════════════════════════════════════════════════════════════════════
 const CategoryManager = () => {
@@ -783,8 +903,8 @@ const CategoryManager = () => {
   });
 
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [editingVariant, setEditingVariant] = useState(null);
-  const [skuEditAutoMode, setSkuEditAutoMode] = useState(false);
+  const [editVariantModal, setEditVariantModal] = useState(null); // popup modal
+  const [editVariantSaving, setEditVariantSaving] = useState(false);
 
   // Owner-only add variant form state (old way — kept for owner)
   const [variantData, setVariantData] = useState({
@@ -871,7 +991,7 @@ const CategoryManager = () => {
   ]);
 
   useEffect(() => {
-    if (!skuEditAutoMode || !editingVariant || !selectedProduct) return;
+    if (!editingVariant || !selectedProduct) return;
     const generated = computeSKU(
       selectedProduct.name,
       editingVariant.size,
@@ -880,7 +1000,7 @@ const CategoryManager = () => {
     );
     setEditingVariant((prev) => ({ ...prev, sku: generated }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [skuEditAutoMode, editingVariant?.size, editingVariant?.color]);
+  }, [editingVariant?.size, editingVariant?.color]);
 
   // ── Handlers ──
   const handleSaveCategory = async () => {
@@ -948,32 +1068,24 @@ const CategoryManager = () => {
     }
   };
 
-  const handleUpdateVariant = async () => {
-    if (!editingVariant) return;
-    if (!editingVariant.sku || !editingVariant.barcode) {
-      showMsg("SKU and Barcode are required", "error");
-      return;
+  const handleSaveVariantModal = async (form) => {
+    if (!form?.sku || !form?.barcode) {
+      showMsg("SKU and Barcode are required", "error"); return;
     }
-    if (
-      variants.some(
-        (v) => v.id !== editingVariant.id && v.sku === editingVariant.sku,
-      )
-    ) {
-      showMsg(`SKU "${editingVariant.sku}" is already used`, "error");
-      return;
+    if (variants.some((v) => v.id !== form.id && v.sku === form.sku)) {
+      showMsg(`SKU "${form.sku}" is already used by another variant`, "error"); return;
     }
-    setSaving(true);
+    setEditVariantSaving(true);
     try {
-      await updateVariant(editingVariant.id, editingVariant);
+      await updateVariant(form.id, form);
       const updated = await getVariants(selectedProduct.id);
       setVariants(updated);
-      setEditingVariant(null);
-      setSkuEditAutoMode(false);
+      setEditVariantModal(null);
       showMsg("Variant updated!");
     } catch (err) {
       showMsg(err.response?.data?.error || "Error updating variant", "error");
     } finally {
-      setSaving(false);
+      setEditVariantSaving(false);
     }
   };
 
@@ -1007,7 +1119,6 @@ const CategoryManager = () => {
     const v = await getVariants(normalized.id);
     setVariants(v);
     setEditingVariant(null);
-    setSkuEditAutoMode(false);
   };
 
   const openAddVariantModal = () => {
@@ -1221,139 +1332,7 @@ const CategoryManager = () => {
             </thead>
             <tbody>
               {variants.map((v) => {
-                return editingVariant?.id === v.id ? (
-                  /* ── Inline edit row (manager only) ── */
-                  <tr key={v.id} style={{ background: "rgba(233,30,99,0.04)" }}>
-                    <td style={{ minWidth: 170 }}>
-                      <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 3 }}>
-                        SKU — auto from size/color, or type to override
-                      </div>
-                      <input
-                        className="form-control"
-                        style={{ fontSize: 12, fontFamily: "monospace" }}
-                        value={editingVariant.sku}
-                        onChange={(e) => {
-                          setSkuEditAutoMode(false);
-                          setEditingVariant((prev) => ({
-                            ...prev,
-                            sku: e.target.value,
-                          }));
-                        }}
-                      />
-                      {skuEditAutoMode === false && (
-                        <button
-                          type="button"
-                          style={{ marginTop: 3, fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--pink)", textDecoration: "underline", padding: 0 }}
-                          onClick={() => setSkuEditAutoMode(true)}
-                        >
-                          🔄 Switch back to auto
-                        </button>
-                      )}
-                    </td>
-                    <td style={{ minWidth: 130 }}>
-                      <input
-                        className="form-control"
-                        style={{ fontSize: 12, fontFamily: "monospace" }}
-                        value={editingVariant.barcode || ""}
-                        onChange={(e) =>
-                          setEditingVariant((prev) => ({
-                            ...prev,
-                            barcode: e.target.value,
-                          }))
-                        }
-                      />
-                      {editingVariant.sku && editingVariant.barcode !== editingVariant.sku && (
-                        <button
-                          type="button"
-                          style={{ marginTop: 3, fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--pink)", textDecoration: "underline", padding: 0 }}
-                          onClick={() =>
-                            setEditingVariant((prev) => ({ ...prev, barcode: prev.sku }))
-                          }
-                        >
-                          🔄 Use SKU as barcode
-                        </button>
-                      )}
-                    </td>
-                    <td>
-                      <input
-                        className="form-control"
-                        style={{ fontSize: 12, width: 70 }}
-                        value={editingVariant.size || ""}
-                        onChange={(e) =>
-                          setEditingVariant((prev) => ({
-                            ...prev,
-                            size: e.target.value,
-                          }))
-                        }
-                      />
-                    </td>
-                    <td>
-                      <input
-                        className="form-control"
-                        style={{ fontSize: 12, width: 90 }}
-                        value={editingVariant.color || ""}
-                        onChange={(e) =>
-                          setEditingVariant((prev) => ({
-                            ...prev,
-                            color: e.target.value,
-                          }))
-                        }
-                      />
-                    </td>
-                    <td>
-                      <input
-                        className="form-control"
-                        type="number"
-                        step="0.01"
-                        style={{ fontSize: 12, width: 100 }}
-                        value={editingVariant.variant_price || ""}
-                        placeholder="Base price"
-                        onChange={(e) =>
-                          setEditingVariant((prev) => ({
-                            ...prev,
-                            variant_price: e.target.value,
-                          }))
-                        }
-                      />
-                    </td>
-                    <td style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                      {Array.isArray(v.stock)
-                        ? v.stock.map((s) => (
-                            <div key={s.branch_id}>
-                              {s.branch_name}: <strong>{s.stock_qty}</strong>
-                            </div>
-                          ))
-                        : "—"}
-                    </td>
-                    <td>
-                      <div style={{ display: "flex", gap: 4 }}>
-                        <button
-                          className="btn btn-success btn-sm"
-                          onClick={handleUpdateVariant}
-                          disabled={saving}
-                        >
-                          {saving ? (
-                            <span
-                              className="spinner"
-                              style={{ width: 12, height: 12 }}
-                            />
-                          ) : (
-                            "✓ Save"
-                          )}
-                        </button>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => {
-                            setEditingVariant(null);
-                            setSkuEditAutoMode(false);
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
+                return (
                   /* ── Normal display row ── */
                   <tr key={v.id}>
                     <td
@@ -1400,13 +1379,16 @@ const CategoryManager = () => {
                           {isManager && (
                             <button
                               className="btn btn-outline btn-sm"
-                              onClick={() => {
-                                setEditingVariant({
-                                  ...v,
+                              onClick={() =>
+                                setEditVariantModal({
+                                  id: v.id,
+                                  sku: v.sku,
+                                  size: v.size || "",
+                                  color: v.color || "",
+                                  barcode: v.barcode || "",
                                   variant_price: v.variant_price || "",
-                                });
-                                setSkuEditAutoMode(false);
-                              }}
+                                })
+                              }
                             >
                               Edit
                             </button>
@@ -1439,6 +1421,18 @@ const CategoryManager = () => {
             </div>
           )}
         </div>
+
+        {/* Edit Variant Modal — popup (manager only) */}
+        {editVariantModal && isManager && (
+          <EditVariantModal
+            data={editVariantModal}
+            productName={selectedProduct.name}
+            otherSkus={variants.filter((v) => v.id !== editVariantModal.id).map((v) => v.sku)}
+            onClose={() => setEditVariantModal(null)}
+            onSave={handleSaveVariantModal}
+            saving={editVariantSaving}
+          />
+        )}
 
         {/* Add Variant Modal — Manager only */}
         {showAddVariantModal && isManager && (

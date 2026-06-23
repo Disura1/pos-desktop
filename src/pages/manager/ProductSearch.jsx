@@ -139,7 +139,8 @@ const EditVariantModal = ({ data, productName, otherSkus, onClose, onSave, savin
           {skuManual && (
             <button
               type="button"
-              style={{ marginTop: 4, fontSize: 11, background: "none", border: "none", cursor: "pointer", color: "var(--pink)", textDecoration: "underline", padding: 0 }}
+              className="btn btn-ghost btn-sm"
+              style={{ marginTop: 6, fontSize: 11 }}
               onClick={() => setSkuManual(false)}
             >
               🔄 Switch back to auto
@@ -153,7 +154,8 @@ const EditVariantModal = ({ data, productName, otherSkus, onClose, onSave, savin
             {form.sku && form.barcode !== form.sku && (
               <button
                 type="button"
-                style={{ fontSize: 11, background: "none", border: "none", cursor: "pointer", color: "var(--pink)", textDecoration: "underline", padding: 0 }}
+                className="btn btn-ghost btn-sm"
+                style={{ fontSize: 11 }}
                 onClick={() => setForm({ ...form, barcode: form.sku })}
               >
                 🔄 Use SKU as barcode

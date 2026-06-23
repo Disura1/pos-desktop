@@ -113,6 +113,10 @@ const AppInner = () => {
         return <POSPage />;
       case "cashier-history":
         return <SalesHistory />;
+      case "cashier-products":
+        return <CategoryManager />;
+      case "cashier-search":
+        return <ProductSearch />;
       // Shared
       case "categories":
         return <CategoryManager />;
