@@ -198,6 +198,7 @@ const EditVariantModal = ({ data, productName, otherSkus, onClose, onSave, savin
 const ProductSearch = () => {
   const { user } = useAuth();
   const branchId = user?.branchId || null;
+  const canEdit = user?.role === "Manager";
 
   const [query, setQuery]               = useState("");
   const [results, setResults]           = useState([]);
@@ -390,7 +391,7 @@ const ProductSearch = () => {
                   <th>Variant Price</th>
                   <th>Stock (This Branch)</th>
                   <th>All Branches</th>
-                  <th>Actions</th>
+                  {canEdit && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -441,23 +442,25 @@ const ProductSearch = () => {
                           </div>
                         ) : "—"}
                       </td>
-                      <td>
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() =>
-                            setEditVariantData({
-                              id: v.id,
-                              sku: v.sku,
-                              size: v.size || "",
-                              color: v.color || "",
-                              barcode: v.barcode || "",
-                              variant_price: v.variant_price || "",
-                            })
-                          }
-                        >
-                          Edit
-                        </button>
-                      </td>
+                      {canEdit && (
+                        <td>
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() =>
+                              setEditVariantData({
+                                id: v.id,
+                                sku: v.sku,
+                                size: v.size || "",
+                                color: v.color || "",
+                                barcode: v.barcode || "",
+                                variant_price: v.variant_price || "",
+                              })
+                            }
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -541,7 +544,7 @@ const ProductSearch = () => {
                   <th>Product Name</th>
                   <th>Base Price</th>
                   <th>Matched Variants</th>
-                  <th>Actions</th>
+                  {canEdit && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -579,19 +582,21 @@ const ProductSearch = () => {
                         >
                           View Details
                         </button>
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() =>
-                            setEditProductData({
-                              product_id: product.product_id,
-                              name: product.name,
-                              base_price: product.base_price,
-                              description: product.description || "",
-                            })
-                          }
-                        >
-                          Edit
-                        </button>
+                        {canEdit && (
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() =>
+                              setEditProductData({
+                                product_id: product.product_id,
+                                name: product.name,
+                                base_price: product.base_price,
+                                description: product.description || "",
+                              })
+                            }
+                          >
+                            Edit
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
