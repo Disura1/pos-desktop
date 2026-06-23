@@ -990,18 +990,6 @@ const CategoryManager = () => {
     variants,
   ]);
 
-  useEffect(() => {
-    if (!editingVariant || !selectedProduct) return;
-    const generated = computeSKU(
-      selectedProduct.name,
-      editingVariant.size,
-      editingVariant.color,
-      variants.filter((v) => v.id !== editingVariant.id).map((v) => v.sku),
-    );
-    setEditingVariant((prev) => ({ ...prev, sku: generated }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editingVariant?.size, editingVariant?.color]);
-
   // ── Handlers ──
   const handleSaveCategory = async () => {
     setSaving(true);
@@ -1111,14 +1099,10 @@ const CategoryManager = () => {
   };
 
   const openVariantsPage = async (product) => {
-    // Normalize id since the new with-stock endpoint returns product_id, not id
     const normalized = { ...product, id: product.product_id || product.id };
     setSelectedProduct(normalized);
-    // Both owner and manager use getVariants — shows all branches' stock.
-    // getVariantsByBranch was filtering to one branch only, which was wrong for owner.
     const v = await getVariants(normalized.id);
     setVariants(v);
-    setEditingVariant(null);
   };
 
   const openAddVariantModal = () => {
@@ -1191,7 +1175,6 @@ const CategoryManager = () => {
               <span
                 onClick={() => {
                   setSelectedProduct(null);
-                  setEditingVariant(null);
                   setParentId(null);
                 }}
                 style={{
@@ -1220,7 +1203,6 @@ const CategoryManager = () => {
                   <span
                     onClick={() => {
                       setSelectedProduct(null);
-                      setEditingVariant(null);
                       setParentId(crumb.id);
                     }}
                     style={{
@@ -1280,7 +1262,6 @@ const CategoryManager = () => {
               style={{ marginBottom: 6 }}
               onClick={() => {
                 setSelectedProduct(null);
-                setEditingVariant(null);
               }}
             >
               ⬅ Back to Products
