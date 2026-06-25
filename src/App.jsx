@@ -18,7 +18,7 @@ import StockManager from "./pages/manager/StockManager";
 import ReceiveStock from "./pages/manager/ReceiveStock";
 import TransferStock from "./pages/manager/TransferStock";
 import ProductSearch from "./pages/manager/ProductSearch";
-import LabelPrinter from './pages/manager/LabelPrinter';
+import LabelPrinter from "./pages/manager/LabelPrinter";
 
 // Cashier pages
 import POSPage from "./pages/cashier/POSPage";
@@ -29,7 +29,7 @@ import CategoryManager from "./pages/shared/CategoryManager";
 
 const DEFAULT_VIEW = {
   Owner: "owner-dashboard",
-  Admin: "owner-dashboard", // legacy role name fallback
+  Admin: "owner-dashboard",
   Manager: "manager-dashboard",
   Cashier: "pos",
 };
@@ -37,41 +37,25 @@ const DEFAULT_VIEW = {
 const AppInner = () => {
   const { user, loading } = useAuth();
   const [view, setView] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Reset view every time the logged-in user changes (login / logout / role switch)
   useEffect(() => {
     if (user) {
       setView(DEFAULT_VIEW[user.role] || "pos");
+      // Cashier defaults to sidebar closed for a cleaner POS view
+      setSidebarOpen(user.role !== "Cashier");
     } else {
-      setView(null); // clear on logout so the next login starts fresh
+      setView(null);
     }
-  }, [user?.id, user?.role]); // key on the specific user, not the whole object
+  }, [user?.id, user?.role]);
 
   if (loading)
     return (
-      <div
-        style={{
-          height: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#1C1C2E",
-        }}
-      >
+      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#1C1C2E" }}>
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 36, marginBottom: 16 }}>👗</div>
-          <div style={{ color: "#E91E63", fontWeight: 800, fontSize: 22 }}>
-            TEEN GIRL
-          </div>
-          <div
-            style={{
-              color: "rgba(255,255,255,0.4)",
-              fontSize: 12,
-              marginTop: 6,
-            }}
-          >
-            Loading...
-          </div>
+          <div style={{ color: "#E91E63", fontWeight: 800, fontSize: 22 }}>TEEN GIRL</div>
+          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 6 }}>Loading...</div>
         </div>
       </div>
     );
@@ -80,46 +64,24 @@ const AppInner = () => {
 
   const renderPage = () => {
     switch (view) {
-      // Owner
-      case "owner-dashboard":
-        return <OwnerDashboard />;
-      case "branches":
-        return <BranchManager />;
-      case "users":
-        return <UserManager />;
-      case "owner-reports":
-        return <OwnerReports />;
-      case "owner-stock":
-        return <OwnerStock />;
-      case "discounts":
-        return <DiscountManager />;
-      // Manager
-      case "manager-dashboard":
-        return <ManagerDashboard />;
-      case "stock-manager":
-        return <StockManager />;
-      case "receive-stock":
-        return <ReceiveStock />;
-      case "transfer-stock":
-        return <TransferStock />;
-      case "manager-reports":
-        return <OwnerReports />;
-      case "product-search":
-        return <ProductSearch />;
-      case "label-printer":
-        return <LabelPrinter />;
-      // Cashier
-      case "pos":
-        return <POSPage />;
-      case "cashier-history":
-        return <SalesHistory />;
-      case "cashier-products":
-        return <CategoryManager />;
-      case "cashier-search":
-        return <ProductSearch />;
-      // Shared
-      case "categories":
-        return <CategoryManager />;
+      case "owner-dashboard":  return <OwnerDashboard />;
+      case "branches":         return <BranchManager />;
+      case "users":            return <UserManager />;
+      case "owner-reports":    return <OwnerReports />;
+      case "owner-stock":      return <OwnerStock />;
+      case "discounts":        return <DiscountManager />;
+      case "manager-dashboard":return <ManagerDashboard />;
+      case "stock-manager":    return <StockManager />;
+      case "receive-stock":    return <ReceiveStock />;
+      case "transfer-stock":   return <TransferStock />;
+      case "manager-reports":  return <OwnerReports />;
+      case "product-search":   return <ProductSearch />;
+      case "label-printer":    return <LabelPrinter />;
+      case "pos":              return <POSPage />;
+      case "cashier-history":  return <SalesHistory />;
+      case "cashier-products": return <CategoryManager />;
+      case "cashier-search":   return <ProductSearch />;
+      case "categories":       return <CategoryManager />;
       default:
         return (
           <div className="page-content">
@@ -134,8 +96,38 @@ const AppInner = () => {
 
   return (
     <div className="app-shell">
-      <Sidebar currentView={view} setView={setView} />
-      <div className="main-area">
+      {/* Sidebar — hidden when closed */}
+      {sidebarOpen && (
+        <Sidebar currentView={view} setView={(v) => { setView(v); if (user.role === "Cashier") setSidebarOpen(false); }} />
+      )}
+
+      <div className="main-area" style={{ position: "relative" }}>
+        {/* Sidebar toggle button — only for cashier */}
+        {user.role === "Cashier" && (
+          <button
+            onClick={() => setSidebarOpen((o) => !o)}
+            title={sidebarOpen ? "Hide menu" : "Show menu"}
+            style={{
+              position: "absolute",
+              top: 10,
+              left: 10,
+              zIndex: 100,
+              background: "var(--card)",
+              border: "1.5px solid var(--border)",
+              borderRadius: "var(--radius-sm)",
+              padding: "5px 10px",
+              cursor: "pointer",
+              fontSize: 16,
+              color: "var(--text)",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            {sidebarOpen ? "✕" : "☰"}
+          </button>
+        )}
+
         <TopBar currentView={view} />
         {renderPage()}
       </div>

@@ -66,7 +66,8 @@ const POSPage = () => {
     if (q.length < 2) { setSearchResults([]); return; }
     try {
       const results = await searchProducts(q, branchId);
-      setSearchResults(results);
+      // Only show variants that are active for this branch
+      setSearchResults((results || []).filter(r => r.is_active_here === true));
     } catch {}
   };
 
@@ -111,7 +112,7 @@ const POSPage = () => {
         cashierName: user.fullName || user.username,
       });
 
-      showMsg('success', `✅ Payment successful! Sale #${res.saleId} · Change: ${fmtCurrency(change)}`);
+      showMsg('success', `✅ Payment successful! Receipt: ${res.receiptNumber || '#'+res.saleId} · Change: ${fmtCurrency(change)}`);
       setCart([]);
       setSelectedDiscount(null);
       setAmountTendered('');

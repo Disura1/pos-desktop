@@ -1,9 +1,13 @@
 import { fmtCurrency, fmtDateTime } from './formatters';
 
 export const buildReceiptHtml = ({ sale, items, branchName, cashierName }) => {
+  const receiptNo = sale.receipt_number || `#${sale.id}`;
+  const address   = sale.branch_address || '';
+  const phone     = sale.branch_phone   || '';
+
   const itemRows = items.map(item => `
     <div style="display:flex;justify-content:space-between;margin:3px 0;font-size:11px;">
-      <span>${item.product_name} ${item.size ? `(${item.size})` : ''} ${item.color ? `/ ${item.color}` : ''}</span>
+      <span>${item.product_name}${item.size ? ` (${item.size})` : ''}${item.color ? ` / ${item.color}` : ''}</span>
       <span>x${item.quantity}</span>
     </div>
     <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:11px;">
@@ -13,13 +17,15 @@ export const buildReceiptHtml = ({ sale, items, branchName, cashierName }) => {
   `).join('');
 
   return `
-    <div style="text-align:center;margin-bottom:10px;">
+    <div style="text-align:center;margin-bottom:8px;">
       <div style="font-size:18px;font-weight:900;letter-spacing:1px;">TEEN GIRL</div>
-      <div style="font-size:11px;color:#555;">${branchName || 'Boutique Store'}</div>
+      <div style="font-size:11px;font-weight:700;margin-top:2px;">${branchName || 'Boutique Store'}</div>
+      ${address ? `<div style="font-size:10px;color:#555;margin-top:2px;">${address}</div>` : ''}
+      ${phone   ? `<div style="font-size:10px;color:#555;">Tel: ${phone}</div>` : ''}
     </div>
     <div style="border-top:1px dashed #000;margin:6px 0;"></div>
-    <div style="font-size:11px;margin-bottom:4px;">Receipt #${sale.id}</div>
-    <div style="font-size:11px;margin-bottom:4px;">Date: ${fmtDateTime(sale.sale_date)}</div>
+    <div style="font-size:11px;margin-bottom:3px;font-weight:700;">Receipt: ${receiptNo}</div>
+    <div style="font-size:11px;margin-bottom:3px;">Date: ${fmtDateTime(sale.sale_date)}</div>
     <div style="font-size:11px;margin-bottom:8px;">Cashier: ${cashierName || ''}</div>
     <div style="border-top:1px dashed #000;margin:6px 0;"></div>
     ${itemRows}
@@ -42,8 +48,7 @@ export const buildReceiptHtml = ({ sale, items, branchName, cashierName }) => {
       <span>Change</span><span>${fmtCurrency(sale.change_amount)}</span>
     </div>` : ''}
     <div style="border-top:1px dashed #000;margin:10px 0;"></div>
-    <div style="text-align:center;font-size:11px;color:#555;">Thank You! Visit Again</div>
-    <div style="text-align:center;font-size:10px;color:#888;margin-top:4px;">Teen Girl Boutique</div>
+    <div style="text-align:center;font-size:11px;color:#555;">Thank you for shopping with us!</div>
     <br><br>
   `;
 };
