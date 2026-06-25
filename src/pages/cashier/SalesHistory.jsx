@@ -68,7 +68,10 @@ const SalesHistory = () => {
     if (maxPrice !== '')
       rows = rows.filter(s => parseFloat(s.total_amount) <= parseFloat(maxPrice));
     if (searchId.trim() !== '')
-      rows = rows.filter(s => String(s.id).includes(searchId.trim()));
+      rows = rows.filter(s =>
+        String(s.id).includes(searchId.trim()) ||
+        (s.receipt_number || '').toLowerCase().includes(searchId.trim().toLowerCase())
+      );
     return rows;
   }, [sales, paymentFilter, minPrice, maxPrice, searchId]);
 
@@ -153,7 +156,7 @@ const SalesHistory = () => {
           <input
             className="form-control"
             style={{ width: 150, fontSize: 13 }}
-            placeholder="Search Sale #"
+            placeholder="Search receipt / ID"
             value={searchId}
             onChange={e => setSearchId(e.target.value)}
           />
@@ -259,7 +262,9 @@ const SalesHistory = () => {
               <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40 }}><span className="spinner" /></td></tr>
             ) : filtered.map(s => (
               <tr key={s.id}>
-                <td style={{ fontWeight: 700, color: 'var(--pink)' }}>#{s.id}</td>
+                <td style={{ fontWeight: 700, color: 'var(--pink)', fontFamily: 'monospace', fontSize: 12 }}>
+                  {s.receipt_number || `#${s.id}`}
+                </td>
                 <td style={{ fontSize: 12 }}>{fmtDateTime(s.sale_date)}</td>
                 <td style={{ textAlign: 'center' }}>{s.item_count}</td>
                 <td style={{ color: 'var(--success)', fontSize: 12 }}>
@@ -300,7 +305,7 @@ const SalesHistory = () => {
       {detail && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setDetail(null)}>
           <div className="modal">
-            <div className="modal-title">🧾 Sale #{detail.id} Details</div>
+            <div className="modal-title">🧾 {detail.receipt_number || `#${detail.id}`} Details</div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16, fontSize: 13 }}>
               <div>

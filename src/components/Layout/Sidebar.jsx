@@ -1,7 +1,7 @@
 import React from "react";
 import { useAuth } from "../../context/AuthContext";
 import { initials } from "../../utils/formatters";
-import logo from "../../assets/logo.png";
+import logo from "../../assets/logo.jpg";
 
 const OWNER_NAV = [
   { label: "Dashboard", icon: "📊", view: "owner-dashboard" },

@@ -17,10 +17,17 @@ export const AuthProvider = ({ children }) => {
 
       // If cached user has stale fullName (same as username or missing),
       // fetch fresh data from backend to get the real full_name
-      const isStale =
-        !parsedUser.fullName || parsedUser.fullName === parsedUser.username;
+      // Only do a refresh if fullName is genuinely missing/stale
+      // NOT on every single app start — that causes the loading screen every time
+      const isStale = !parsedUser.fullName ||
+        (parsedUser.fullName === parsedUser.username);
 
-      if (isStale) {
+      // Skip the network call if we refreshed recently (within last 4 hours)
+      const lastRefresh = localStorage.getItem('tg_last_refresh');
+      const fourHours = 4 * 60 * 60 * 1000;
+      const refreshedRecently = lastRefresh && (Date.now() - parseInt(lastRefresh)) < fourHours;
+
+      if (isStale && !refreshedRecently) {
         // Set token first so apiClient can use it
         setToken(savedToken);
         apiClient
@@ -32,7 +39,8 @@ export const AuthProvider = ({ children }) => {
               ...parsedUser,
               fullName: res.data.full_name || null,
             };
-            localStorage.setItem("tg_user", JSON.stringify(freshUser));
+            localStorage.setItem('tg_user', JSON.stringify(freshUser));
+            localStorage.setItem('tg_last_refresh', String(Date.now()));
             setUser(freshUser);
           })
           .catch(() => {
@@ -66,8 +74,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem("tg_user");
-    localStorage.removeItem("tg_token");
+    localStorage.removeItem('tg_user');
+    localStorage.removeItem('tg_token');
+    localStorage.removeItem('tg_last_refresh');
     setUser(null);
     setToken(null);
   };

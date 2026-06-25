@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import logo from "./assets/logo.png";
+import logo from "./assets/logo.jpg";
 import Sidebar from "./components/Layout/Sidebar";
 import TopBar from "./components/Layout/TopBar";
 import LoginPage from "./pages/LoginPage";
