@@ -49,7 +49,7 @@ const OwnerReports = () => {
         getDateRangeReport({ startDate, endDate, branchId: branchId || null }),
         getRevenueByPeriod({ days, branchId: branchId || null }),
         getTopProducts({ days, branchId: branchId || null, limit: 10 }),
-        getSaleHistory({ branchId: branchId || null, limit: 50, date: null }),
+        getSaleHistory({ branchId: branchId || null, limit: 200, date: null }),
       ]);
       setSummary(s.summary);
       setChartData(c);
@@ -207,7 +207,9 @@ const OwnerReports = () => {
               <tbody>
                 {sales.map(s => (
                   <tr key={s.id}>
-                    <td style={{ fontWeight: 700 }}>#{s.id}</td>
+                    <td style={{ fontWeight: 700, fontFamily: 'monospace', fontSize: 12 }}>
+                      {s.receipt_number || `#${s.id}`}
+                    </td>
                     <td style={{ fontSize: 12 }}>{fmtDateTime(s.sale_date)}</td>
                     <td style={{ fontSize: 12 }}>{s.branch_name}</td>
                     <td style={{ fontSize: 12 }}>{s.cashier_name}</td>

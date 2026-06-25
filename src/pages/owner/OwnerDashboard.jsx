@@ -136,19 +136,8 @@ const OwnerDashboard = () => {
             borderRadius: 8,
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>
-            ⚠️ Some data could not be loaded:
-          </div>
-          {Object.entries(errors).map(([k, v]) => (
-            <div
-              key={k}
-              style={{ fontSize: 12, color: "#856404", marginBottom: 2 }}
-            >
-              <strong>{k}:</strong> {v}
-            </div>
-          ))}
-          <div style={{ fontSize: 11, color: "#856404", marginTop: 6 }}>
-            Check your backend terminal (nodemon console) for the full error.
+          <div style={{ fontWeight: 700, color: "#856404" }}>
+            ⚠️ Some dashboard data could not be loaded. Please check your connection and try refreshing.
           </div>
         </div>
       )}

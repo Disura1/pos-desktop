@@ -1,6 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import apiClient from "../api/client";
 
+// Simple integrity check for the refresh timestamp
+// Prevents someone from setting tg_last_refresh to a fake future value in DevTools
+const REFRESH_SALT = 'tg_pos_refresh_v1';
+const signTimestamp  = (ts) => `${ts}:${btoa(REFRESH_SALT + ts).slice(0, 12)}`;
+const verifyTimestamp = (val) => {
+  if (!val) return null;
+  const [ts, sig] = val.split(':');
+  if (!ts || !sig) return null;
+  if (btoa(REFRESH_SALT + ts).slice(0, 12) !== sig) return null; // tampered
+  return parseInt(ts);
+};
+
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -23,9 +35,10 @@ export const AuthProvider = ({ children }) => {
         (parsedUser.fullName === parsedUser.username);
 
       // Skip the network call if we refreshed recently (within last 4 hours)
-      const lastRefresh = localStorage.getItem('tg_last_refresh');
+      const lastRefreshRaw = localStorage.getItem('tg_last_refresh');
       const fourHours = 4 * 60 * 60 * 1000;
-      const refreshedRecently = lastRefresh && (Date.now() - parseInt(lastRefresh)) < fourHours;
+      const lastRefreshTs = verifyTimestamp(lastRefreshRaw);
+      const refreshedRecently = lastRefreshTs && (Date.now() - lastRefreshTs) < fourHours;
 
       if (isStale && !refreshedRecently) {
         // Set token first so apiClient can use it
@@ -40,7 +53,7 @@ export const AuthProvider = ({ children }) => {
               fullName: res.data.full_name || null,
             };
             localStorage.setItem('tg_user', JSON.stringify(freshUser));
-            localStorage.setItem('tg_last_refresh', String(Date.now()));
+            localStorage.setItem('tg_last_refresh', signTimestamp(Date.now()));
             setUser(freshUser);
           })
           .catch(() => {

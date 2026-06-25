@@ -15,19 +15,21 @@ const OwnerStock = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [inv, ls, br] = await Promise.all([
+      const [inv, ls] = await Promise.all([
         getInventory({ branchId: branchId || undefined }),
         getLowStock({ branchId: branchId || undefined }),
-        getBranches(),
       ]);
       setInventory(inv);
       setLowStock(ls);
-      setBranches(br.filter(b => b.is_active));
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { loadData(); }, [branchId]);
+  useEffect(() => {
+    getBranches().then(b => setBranches(b.filter(x => x.is_active)));
+  }, []); // load branches once only
+
+  useEffect(() => { loadData(); }, [branchId]); // reload inventory on branch change
 
   const filtered = inventory.filter(i =>
     `${i.product_name} ${i.sku} ${i.color} ${i.size}`.toLowerCase().includes(search.toLowerCase())
