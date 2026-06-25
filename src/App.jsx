@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import logo from "./assets/logo.png";
 import Sidebar from "./components/Layout/Sidebar";
 import TopBar from "./components/Layout/TopBar";
 import LoginPage from "./pages/LoginPage";
@@ -53,7 +54,11 @@ const AppInner = () => {
     return (
       <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#1C1C2E" }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 36, marginBottom: 16 }}>👗</div>
+          <img
+            src={logo}
+            alt="Teen Girl"
+            style={{ width: 80, height: 80, objectFit: "contain", borderRadius: "50%", marginBottom: 16 }}
+          />
           <div style={{ color: "#E91E63", fontWeight: 800, fontSize: 22 }}>TEEN GIRL</div>
           <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 6 }}>Loading...</div>
         </div>
