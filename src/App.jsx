@@ -102,33 +102,13 @@ const AppInner = () => {
       )}
 
       <div className="main-area" style={{ position: "relative" }}>
-        {/* Sidebar toggle button — only for cashier */}
-        {user.role === "Cashier" && (
-          <button
-            onClick={() => setSidebarOpen((o) => !o)}
-            title={sidebarOpen ? "Hide menu" : "Show menu"}
-            style={{
-              position: "absolute",
-              top: 10,
-              left: 10,
-              zIndex: 100,
-              background: "var(--card)",
-              border: "1.5px solid var(--border)",
-              borderRadius: "var(--radius-sm)",
-              padding: "5px 10px",
-              cursor: "pointer",
-              fontSize: 16,
-              color: "var(--text)",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            {sidebarOpen ? "✕" : "☰"}
-          </button>
-        )}
-
-        <TopBar currentView={view} />
+        <TopBar
+          currentView={view}
+          sidebarToggle={user.role === "Cashier" ? {
+            isOpen: sidebarOpen,
+            onToggle: () => setSidebarOpen((o) => !o),
+          } : null}
+        />
         {renderPage()}
       </div>
     </div>
