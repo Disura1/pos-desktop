@@ -7,7 +7,13 @@ import {
   hardDeleteBranch,
 } from "../../services/branchService";
 
-const empty = { branch_name: "", address: "", phone: "", is_active: true };
+const empty = {
+  branch_name: "",
+  address: "",
+  phone: "",
+  receipt_prefix: "",
+  is_active: true,
+};
 
 const BranchManager = () => {
   const [branches, setBranches] = useState([]);
@@ -43,6 +49,7 @@ const BranchManager = () => {
       branch_name: b.branch_name,
       address: b.address || "",
       phone: b.phone || "",
+      receipt_prefix: b.receipt_prefix || "",
       is_active: b.is_active,
     });
     setEditBranch(b);
@@ -266,6 +273,34 @@ const BranchManager = () => {
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 placeholder="+94 XX XXX XXXX"
               />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Receipt Prefix</label>
+              <input
+                className="form-control"
+                style={{ fontFamily: "monospace", textTransform: "uppercase" }}
+                value={form.receipt_prefix || ""}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    receipt_prefix: e.target.value
+                      .toUpperCase()
+                      .replace(/[^A-Z0-9]/g, "")
+                      .slice(0, 6),
+                  })
+                }
+                placeholder="e.g. TGM"
+                maxLength={6}
+              />
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "var(--text-muted)",
+                  marginTop: 3,
+                }}
+              >
+                Used in receipt numbers — e.g. TGM-000007. Max 6 characters.
+              </div>
             </div>
             {editBranch && (
               <div className="form-group">

@@ -6,6 +6,9 @@ if (require('electron-squirrel-startup')) app.quit();
 let mainWindow;
 let tray;
 
+// Resolve icon from project root — works correctly with Webpack bundling
+const ICON_PATH = path.resolve(app.getAppPath(), 'assets', 'icon.ico');
+
 const createWindow = () => {
   mainWindow = new BrowserWindow({
     width: 1440,
@@ -20,7 +23,7 @@ const createWindow = () => {
     title: 'Teen Girl POS',
     backgroundColor: '#f5f5f5',
     show: false,
-    icon: path.join(__dirname, '../../assets/icon.ico'),
+    icon: ICON_PATH,
   });
 
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
@@ -35,7 +38,7 @@ const createWindow = () => {
 };
 
 const createTray = () => {
-  const icon = nativeImage.createEmpty();
+  const icon = nativeImage.createFromPath(ICON_PATH);
   tray = new Tray(icon);
   const menu = Menu.buildFromTemplate([
     { label: 'Open Teen Girl POS', click: () => mainWindow.show() },
