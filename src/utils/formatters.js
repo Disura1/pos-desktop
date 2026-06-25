@@ -1,8 +1,11 @@
 export const fmtCurrency = (val) =>
   `LKR ${parseFloat(val || 0).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-export const fmtDate = (dateStr) =>
-  new Date(dateStr).toLocaleDateString('en-LK', { year: 'numeric', month: 'short', day: 'numeric' });
+export const fmtDate = (dateStr) => {
+  // Append time to force local timezone parsing (date-only strings are parsed as UTC by default)
+  const d = dateStr && dateStr.length === 10 ? new Date(dateStr + 'T00:00:00') : new Date(dateStr);
+  return d.toLocaleDateString('en-LK', { year: 'numeric', month: 'short', day: 'numeric' });
+};
 
 export const fmtDateTime = (dateStr) =>
   new Date(dateStr).toLocaleString('en-LK', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });

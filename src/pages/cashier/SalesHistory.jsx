@@ -4,8 +4,15 @@ import { getSaleHistory, getSaleDetail } from '../../services/saleService';
 import { printReceipt } from '../../utils/printUtils';
 import { fmtCurrency, fmtDateTime, fmtDate } from '../../utils/formatters';
 
-const today     = () => new Date().toISOString().slice(0, 10);
-const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
+// Use local date (not UTC) to match the server's Sri Lanka timezone
+const localDateStr = (d = new Date()) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+const today     = () => localDateStr();
+const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return localDateStr(d); };
 
 const PAYMENT_OPTIONS = [
   { value: 'all',  label: 'All Methods' },

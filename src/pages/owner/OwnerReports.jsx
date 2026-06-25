@@ -4,8 +4,14 @@ import { getBranches } from '../../services/branchService';
 import { getSaleHistory } from '../../services/saleService';
 import { fmtCurrency, fmtDate, fmtDateTime } from '../../utils/formatters';
 
-const today = () => new Date().toISOString().slice(0, 10);
-const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+const localDateStr = (d = new Date()) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+const today   = () => localDateStr();
+const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return localDateStr(d); };
 
 const MiniBarChart = ({ data, valueKey = 'revenue' }) => {
   if (!data?.length) return <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 16 }}>No data for this period</div>;
