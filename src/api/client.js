@@ -9,12 +9,12 @@ apiClient.interceptors.request.use((config) => {
 });
 
 apiClient.interceptors.response.use(
-  (res) => res,
-  (err) => {
+  res => res,
+  err => {
     if (err.response?.status === 401) {
       localStorage.removeItem('tg_user');
       localStorage.removeItem('tg_token');
-      window.location.reload();
+      window.location.reload(); // forces back to login
     }
     return Promise.reject(err);
   }
