@@ -6,8 +6,8 @@ if (require('electron-squirrel-startup')) app.quit();
 let mainWindow;
 let tray;
 
-// Resolve icon from project root — works correctly with Webpack bundling
-const ICON_PATH = path.resolve(app.getAppPath(), 'assets', 'icon.ico');
+// __dirname is .webpack/main/ after bundling — assets are copied there by CopyWebpackPlugin
+const ICON_PATH = path.join(__dirname, 'assets', 'icon.ico');
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({

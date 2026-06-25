@@ -5,7 +5,13 @@ module.exports = {
   packagerConfig: {
     asar: true,
     name: 'Teen Girl POS',
-    icon: './assets/icon',   // no extension — electron-forge picks .ico/.icns/.png automatically
+    icon: './assets/icon',
+    extraResources: [
+      {
+        from: './assets',
+        to: 'assets',
+      },
+    ],
   },
   rebuildConfig: {},
   makers: [
