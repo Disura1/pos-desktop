@@ -14,7 +14,8 @@ apiClient.interceptors.response.use(
     if (err.response?.status === 401) {
       localStorage.removeItem('tg_user');
       localStorage.removeItem('tg_token');
-      window.location.reload(); // forces back to login
+      localStorage.removeItem('tg_last_refresh');
+      window.location.reload();
     }
     return Promise.reject(err);
   }

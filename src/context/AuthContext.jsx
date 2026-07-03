@@ -25,7 +25,17 @@ export const AuthProvider = ({ children }) => {
     const savedToken = localStorage.getItem("tg_token");
 
     if (savedUser && savedToken) {
-      const parsedUser = JSON.parse(savedUser);
+      let parsedUser;
+      try {
+        parsedUser = JSON.parse(savedUser);
+      } catch {
+        // Corrupted localStorage — clear and show login
+        localStorage.removeItem('tg_user');
+        localStorage.removeItem('tg_token');
+        localStorage.removeItem('tg_last_refresh');
+        setLoading(false);
+        return;
+      }
 
       // If cached user has stale fullName (same as username or missing),
       // fetch fresh data from backend to get the real full_name
