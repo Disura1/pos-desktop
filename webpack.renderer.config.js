@@ -1,3 +1,4 @@
+const webpack = require('webpack');
 const rules = require('./webpack.rules');
 
 rules.push({
@@ -18,7 +19,6 @@ module.exports = {
         use: [{ loader: 'style-loader' }, { loader: 'css-loader' }],
       },
       {
-        // Support images — webpack 5 built-in, no extra packages needed
         test: /\.(png|jpg|jpeg|gif|ico|svg|webp)$/,
         type: 'asset/resource',
       },
@@ -27,4 +27,9 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.jsx', '.json'],
   },
+  plugins: [
+    new webpack.DefinePlugin({
+      'process.env.API_URL': JSON.stringify(process.env.API_URL || 'http://localhost:5000/api'),
+    }),
+  ],
 };

@@ -3,14 +3,9 @@ import apiClient from "../api/client";
 
 // Simple integrity check for the refresh timestamp
 // Prevents someone from setting tg_last_refresh to a fake future value in DevTools
-const REFRESH_SALT = 'tg_pos_refresh_v1';
-const signTimestamp  = (ts) => `${ts}:${btoa(REFRESH_SALT + ts).slice(0, 12)}`;
 const verifyTimestamp = (val) => {
-  if (!val) return null;
-  const [ts, sig] = val.split(':');
-  if (!ts || !sig) return null;
-  if (btoa(REFRESH_SALT + ts).slice(0, 12) !== sig) return null; // tampered
-  return parseInt(ts);
+  const ts = parseInt(val);
+  return isNaN(ts) ? null : ts;
 };
 
 const AuthContext = createContext(null);
@@ -63,7 +58,7 @@ export const AuthProvider = ({ children }) => {
               fullName: res.data.full_name || null,
             };
             localStorage.setItem('tg_user', JSON.stringify(freshUser));
-            localStorage.setItem('tg_last_refresh', signTimestamp(Date.now()));
+            localStorage.setItem('tg_last_refresh', String(Date.now()));
             setUser(freshUser);
           })
           .catch(() => {
