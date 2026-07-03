@@ -1,5 +1,13 @@
 import { fmtCurrency, fmtDateTime } from './formatters';
 
+// Escape user-supplied strings before embedding in HTML
+const esc = (str) => String(str || '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
+
 export const buildReceiptHtml = ({ sale, items, branchName, cashierName }) => {
   const receiptNo = sale.receipt_number || `#${sale.id}`;
   const address   = sale.branch_address || '';
@@ -7,11 +15,11 @@ export const buildReceiptHtml = ({ sale, items, branchName, cashierName }) => {
 
   const itemRows = items.map(item => `
     <div style="display:flex;justify-content:space-between;margin:3px 0;font-size:11px;">
-      <span>${item.product_name}${item.size ? ` (${item.size})` : ''}${item.color ? ` / ${item.color}` : ''}</span>
-      <span>x${item.quantity}</span>
+      <span>${esc(item.product_name)}${item.size ? ` (${esc(item.size)})` : ''}${item.color ? ` / ${esc(item.color)}` : ''}</span>
+      <span>x${parseInt(item.quantity) || 0}</span>
     </div>
     <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:11px;">
-      <span style="color:#666;">${item.sku}</span>
+      <span style="color:#666;">${esc(item.sku)}</span>
       <span>${fmtCurrency(item.total_price)}</span>
     </div>
   `).join('');
@@ -19,14 +27,14 @@ export const buildReceiptHtml = ({ sale, items, branchName, cashierName }) => {
   return `
     <div style="text-align:center;margin-bottom:8px;">
       <div style="font-size:18px;font-weight:900;letter-spacing:1px;">TEEN GIRL</div>
-      <div style="font-size:11px;font-weight:700;margin-top:2px;">${branchName || 'Boutique Store'}</div>
-      ${address ? `<div style="font-size:10px;color:#555;margin-top:2px;">${address}</div>` : ''}
-      ${phone   ? `<div style="font-size:10px;color:#555;">Tel: ${phone}</div>` : ''}
+      <div style="font-size:11px;font-weight:700;margin-top:2px;">${esc(branchName) || 'Boutique Store'}</div>
+      ${address ? `<div style="font-size:10px;color:#555;margin-top:2px;">${esc(address)}</div>` : ''}
+      ${phone   ? `<div style="font-size:10px;color:#555;">Tel: ${esc(phone)}</div>` : ''}
     </div>
     <div style="border-top:1px dashed #000;margin:6px 0;"></div>
-    <div style="font-size:11px;margin-bottom:3px;font-weight:700;">Receipt: ${receiptNo}</div>
+    <div style="font-size:11px;margin-bottom:3px;font-weight:700;">Receipt: ${esc(receiptNo)}</div>
     <div style="font-size:11px;margin-bottom:3px;">Date: ${fmtDateTime(sale.sale_date)}</div>
-    <div style="font-size:11px;margin-bottom:8px;">Cashier: ${cashierName || ''}</div>
+    <div style="font-size:11px;margin-bottom:8px;">Cashier: ${esc(cashierName)}</div>
     <div style="border-top:1px dashed #000;margin:6px 0;"></div>
     ${itemRows}
     <div style="border-top:1px dashed #000;margin:6px 0;"></div>

@@ -21,7 +21,7 @@ const TransferStock = () => {
 
   useEffect(() => {
     getInventory({ branchId }).then(setInventory);
-    getBranches().then(b => setBranches(b.filter(x => x.is_active && x.id !== branchId)));
+    getBranches().then(b => setBranches(b.filter(x => x.is_active && parseInt(x.id) !== parseInt(branchId))));
   }, [branchId]);
 
   const filtered = inventory.filter(i =>
@@ -95,10 +95,16 @@ const TransferStock = () => {
 
               <div className="form-group">
                 <label className="form-label">Transfer To Branch *</label>
-                <select className="form-control" value={toBranchId} onChange={e => setToBranchId(e.target.value)}>
-                  <option value="">Select destination branch</option>
-                  {branches.map(b => <option key={b.id} value={b.id}>{b.branch_name}</option>)}
-                </select>
+                {branches.length === 0 ? (
+                  <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)', fontSize: 13, color: 'var(--text-muted)' }}>
+                    ⚠️ No other active branches available to transfer to.
+                  </div>
+                ) : (
+                  <select className="form-control" value={toBranchId} onChange={e => setToBranchId(e.target.value)}>
+                    <option value="">Select destination branch</option>
+                    {branches.map(b => <option key={b.id} value={b.id}>{b.branch_name}</option>)}
+                  </select>
+                )}
               </div>
 
               <div className="form-group">

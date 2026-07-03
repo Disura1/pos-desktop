@@ -12,24 +12,29 @@ const OwnerStock = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('inventory');
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [inv, ls] = await Promise.all([
-        getInventory({ branchId: branchId || undefined }),
-        getLowStock({ branchId: branchId || undefined }),
-      ]);
-      setInventory(inv);
-      setLowStock(ls);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
-  };
-
   useEffect(() => {
     getBranches().then(b => setBranches(b.filter(x => x.is_active)));
-  }, []); // load branches once only
+  }, []);
 
-  useEffect(() => { loadData(); }, [branchId]); // reload inventory on branch change
+  useEffect(() => {
+    let cancelled = false;
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const [inv, ls] = await Promise.all([
+          getInventory({ branchId: branchId || undefined }),
+          getLowStock({ branchId: branchId || undefined }),
+        ]);
+        if (!cancelled) {
+          setInventory(inv);
+          setLowStock(ls);
+        }
+      } catch (err) { if (!cancelled) console.error(err); }
+      finally { if (!cancelled) setLoading(false); }
+    };
+    loadData();
+    return () => { cancelled = true; }; // cleanup prevents stale state updates
+  }, [branchId]);
 
   const filtered = inventory.filter(i =>
     `${i.product_name} ${i.sku} ${i.color} ${i.size}`.toLowerCase().includes(search.toLowerCase())
