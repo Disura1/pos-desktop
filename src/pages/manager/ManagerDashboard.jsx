@@ -47,9 +47,9 @@ const MiniChart = ({ data }) => {
             <div
               style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 3 }}
             >
-              {new Date(d.date).toLocaleDateString("en-LK", {
-                weekday: "short",
-              })}
+              {new Date(d.date + 'T00:00:00').toLocaleDateString("en-LK", {
+              weekday: "short",
+            })}
             </div>
           </div>
         );
@@ -135,19 +135,8 @@ const ManagerDashboard = () => {
             borderRadius: 8,
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>
-            ⚠️ Some data could not be loaded:
-          </div>
-          {Object.entries(errors).map(([k, v]) => (
-            <div
-              key={k}
-              style={{ fontSize: 12, color: "#856404", marginBottom: 2 }}
-            >
-              <strong>{k}:</strong> {v}
-            </div>
-          ))}
-          <div style={{ fontSize: 11, color: "#856404", marginTop: 6 }}>
-            Check the backend terminal for the full error details.
+          <div style={{ fontWeight: 700, color: "#856404" }}>
+            ⚠️ Some dashboard data could not be loaded. Please check your connection and try refreshing.
           </div>
         </div>
       )}

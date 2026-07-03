@@ -21,20 +21,11 @@ const POSPage = () => {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [showPayment, setShowPayment] = useState(false);
 
   const branchId = user?.branchId;
-  if (!branchId) {
-    return (
-      <div className="page-content">
-        <div className="alert alert-danger">
-          ⚠️ Your account has no branch assigned. Please contact the Owner to assign you to a branch before using the POS.
-        </div>
-      </div>
-    );
-  }
 
   useEffect(() => {
+    if (!branchId) return; // don't load if no branch
     getActiveDiscounts().then(setDiscounts).catch(() => {});
     scanRef.current?.focus();
   }, []);
@@ -77,7 +68,11 @@ const POSPage = () => {
       const results = await searchProducts(q, branchId);
       // Only show variants that are active for this branch
       setSearchResults((results || []).filter(r => r.is_active_here === true));
-    } catch {}
+    } catch (err) {
+      if (err.response?.status !== 400) {
+        showMsg('error', 'Search failed — check connection');
+      }
+    }
   };
 
   const updateQty = (sku, delta) => {
@@ -125,7 +120,6 @@ const POSPage = () => {
       setCart([]);
       setSelectedDiscount(null);
       setAmountTendered('');
-      setShowPayment(false);
     } catch (err) {
       showMsg('error', err.response?.data?.error || 'Checkout failed!');
     } finally {
@@ -133,6 +127,16 @@ const POSPage = () => {
       scanRef.current?.focus();
     }
   };
+
+  if (!branchId) {
+    return (
+      <div className="page-content">
+        <div className="alert alert-danger">
+          ⚠️ Your account has no branch assigned. Please contact the Owner to assign you to a branch before using the POS.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pos-wrap">
