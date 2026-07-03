@@ -7,8 +7,13 @@ export const fmtDate = (dateStr) => {
   return d.toLocaleDateString('en-LK', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
-export const fmtDateTime = (dateStr) =>
-  new Date(dateStr).toLocaleString('en-LK', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+export const fmtDateTime = (dateStr) => {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleString('en-LK', {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+};
 
 export const fmtTime = (dateStr) =>
   new Date(dateStr).toLocaleTimeString('en-LK', { hour: '2-digit', minute: '2-digit' });

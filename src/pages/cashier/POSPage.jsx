@@ -23,7 +23,16 @@ const POSPage = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [showPayment, setShowPayment] = useState(false);
 
-  const branchId = user?.branchId || 1;
+  const branchId = user?.branchId;
+  if (!branchId) {
+    return (
+      <div className="page-content">
+        <div className="alert alert-danger">
+          ⚠️ Your account has no branch assigned. Please contact the Owner to assign you to a branch before using the POS.
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     getActiveDiscounts().then(setDiscounts).catch(() => {});
