@@ -7,6 +7,18 @@ import {
   hardDeleteBranch,
 } from "../../services/branchService";
 
+const ConfirmDialog = ({ message, onConfirm, onCancel, confirmLabel = 'Confirm', confirmClass = 'btn-danger' }) => (
+  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '28px 32px', maxWidth: 420, width: '90%', boxShadow: '0 8px 40px rgba(0,0,0,0.4)' }}>
+      <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 20, lineHeight: 1.5, whiteSpace: 'pre-line' }}>{message}</div>
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+        <button className="btn btn-secondary" onClick={onCancel}>Cancel</button>
+        <button className={`btn ${confirmClass}`} onClick={onConfirm}>{confirmLabel}</button>
+      </div>
+    </div>
+  </div>
+);
+
 const empty = {
   branch_name: "",
   address: "",
@@ -23,6 +35,15 @@ const BranchManager = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState({ text: "", type: "success" });
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const confirm = (message, confirmLabel = 'Confirm', confirmClass = 'btn-danger') =>
+    new Promise((resolve) => {
+      setConfirmDialog({
+        message, confirmLabel, confirmClass,
+        onConfirm: () => { setConfirmDialog(null); resolve(true); },
+        onCancel:  () => { setConfirmDialog(null); resolve(false); },
+      });
+    });
 
   const showMsg = (text, type = "success") => {
     setMsg({ text, type });
@@ -73,43 +94,41 @@ const BranchManager = () => {
   };
 
   const handleDeactivate = async (b) => {
-    if (
-      !window.confirm(
-        `Deactivate "${b.branch_name}"?\n\nThe branch will be hidden from active use but data is kept.`,
-      )
-    )
-      return;
+    const ok = await confirm(
+      `Deactivate "${b.branch_name}"?\n\nThe branch will be hidden from active use but data is kept.`,
+      'Deactivate',
+      'btn-secondary'
+    );
+    if (!ok) return;
     try {
       await deleteBranch(b.id);
       showMsg(`"${b.branch_name}" deactivated.`);
       load();
     } catch (err) {
-      showMsg("Error: " + (err.response?.data?.error || err.message), "error");
+      showMsg('Error: ' + (err.response?.data?.error || err.message), 'error');
     }
   };
 
   const handleHardDelete = async (b) => {
-    if (
-      !window.confirm(
-        `⚠️ PERMANENTLY DELETE "${b.branch_name}"?\n\n` +
-          `This will remove the branch and all its inventory records.\n` +
-          `Sales history will be kept.\n\n` +
-          `This CANNOT be undone. Are you sure?`,
-      )
-    )
-      return;
+    const ok = await confirm(
+      `⚠️ PERMANENTLY DELETE "${b.branch_name}"?\n\nThis will remove the branch and all its inventory records.\nSales history will be kept.\n\nThis CANNOT be undone. Are you sure?`,
+      'Delete Permanently',
+      'btn-danger'
+    );
+    if (!ok) return;
     try {
       await hardDeleteBranch(b.id);
       showMsg(`"${b.branch_name}" permanently deleted.`);
       load();
     } catch (err) {
-      showMsg("Error: " + (err.response?.data?.error || err.message), "error");
+      showMsg('Error: ' + (err.response?.data?.error || err.message), 'error');
     }
   };
 
   return (
     <div className="page-content">
       {/* Header */}
+      {confirmDialog && <ConfirmDialog {...confirmDialog} />}
       <div
         style={{
           display: "flex",

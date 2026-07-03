@@ -133,7 +133,6 @@ const ReceiveStock = () => {
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const [pendingLabels, setPendingLabels] = useState([]); // queue for print after receive
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [msg, setMsg] = useState({ text: "", type: "success" });
   const [movements, setMovements] = useState([]);
@@ -336,6 +335,14 @@ const ReceiveStock = () => {
     }
     if (!newItem.barcode) {
       showMsg("Barcode is required", "error");
+      return;
+    }
+    if (parseFloat(newItem.basePrice) <= 0) {
+      showMsg("Base price must be greater than 0", "error");
+      return;
+    }
+    if (!quantity || parseInt(quantity) < 0) {
+      showMsg("Please enter a quantity to receive (0 or more)", "error");
       return;
     }
     setSavingNew(true);

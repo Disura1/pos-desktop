@@ -33,12 +33,16 @@ const UserManager = () => {
   const [search, setSearch] = useState("");
   const { user: authUser, updateUser: updateAuthUser } = useAuth();
 
-  const load = () => {
-    Promise.all([getUsers(), getRoles(), getBranches()]).then(([u, r, b]) => {
-      setUsers(u);
+  // Load roles and branches once — they don't change during a session
+  useEffect(() => {
+    Promise.all([getRoles(), getBranches()]).then(([r, b]) => {
       setRoles(r);
       setBranches(b.filter((x) => x.is_active));
     });
+  }, []);
+
+  const load = () => {
+    getUsers().then(setUsers);
   };
   useEffect(() => {
     load();
