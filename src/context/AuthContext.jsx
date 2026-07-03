@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import apiClient from "../api/client";
 
-// Simple integrity check for the refresh timestamp
-// Prevents someone from setting tg_last_refresh to a fake future value in DevTools
+// Parses the last-refresh timestamp from localStorage
 const verifyTimestamp = (val) => {
   const ts = parseInt(val);
   return isNaN(ts) ? null : ts;
