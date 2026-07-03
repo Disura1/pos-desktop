@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const apiClient = axios.create({ baseURL: 'http://localhost:5000/api' });
+const apiClient = axios.create({ baseURL: process.env.API_URL || 'http://localhost:5000/api' });
 
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('tg_token');
