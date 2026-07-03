@@ -6,7 +6,7 @@ import {
   getTopProducts,
 } from "../../services/reportService";
 import { getLowStock } from "../../services/stockService";
-import { fmtCurrency, fmtDate } from "../../utils/formatters";
+import { fmtCurrency } from "../../utils/formatters";
 
 const MiniBarChart = ({ data }) => {
   if (!data || data.length === 0)
