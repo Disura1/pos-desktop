@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Notification, Menu, Tray, nativeImage, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification, Menu, Tray, nativeImage } = require('electron');
 const path = require('node:path');
 
 if (require('electron-squirrel-startup')) app.quit();
@@ -65,6 +65,11 @@ app.on('window-all-closed', () => {
 // ── IPC Handlers ──────────────────────────────────────────────────
 
 ipcMain.handle('print-receipt', async (event, receiptHtml) => {
+  // Basic validation — only accept strings, cap size at 100KB
+  if (typeof receiptHtml !== 'string' || receiptHtml.length > 100000) {
+    console.error('print-receipt: invalid or oversized HTML rejected');
+    return;
+  }
   const printWin = new BrowserWindow({
     show: false,
     width: 400,

@@ -45,6 +45,7 @@ const SalesHistory = () => {
   const [loading,  setLoading] = useState(false);
   const [detail,   setDetail]  = useState(null);
   const [printing, setPrinting] = useState(false);
+  const [detailError, setDetailError] = useState('');
 
   // Compute which date to send to API
   const apiDate = useMemo(() => {
@@ -100,19 +101,30 @@ const SalesHistory = () => {
   };
 
   const viewDetail = async (saleId) => {
-    const data = await getSaleDetail(saleId);
-    setDetail(data);
+    setDetailError('');
+    try {
+      const data = await getSaleDetail(saleId);
+      setDetail(data);
+    } catch (err) {
+      setDetailError('Could not load sale details — please try again.');
+      setTimeout(() => setDetailError(''), 4000);
+    }
   };
 
   const handleReprint = async () => {
     if (!detail) return;
     setPrinting(true);
-    await printReceipt({
-      sale: detail, items: detail.items,
-      branchName: user.branchName,
-      cashierName: user.fullName || user.username,
-    });
-    setPrinting(false);
+    try {
+      await printReceipt({
+        sale: detail, items: detail.items,
+        branchName: user.branchName,
+        cashierName: user.fullName || user.username,
+      });
+    } catch (err) {
+      console.error('Reprint failed:', err);
+    } finally {
+      setPrinting(false);
+    }
   };
 
   return (
@@ -250,6 +262,11 @@ const SalesHistory = () => {
         ))}
       </div>
 
+      {detailError && (
+        <div className="alert alert-danger" style={{ marginBottom: 12 }}>
+          {detailError}
+        </div>
+      )}
       {/* ── Table ──────────────────────────────────────────── */}
       <div className="table-wrap">
         <table>

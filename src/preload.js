@@ -7,5 +7,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
   maximizeWindow: () => ipcRenderer.invoke('maximize-window'),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
-  onLowStockAlert: (callback) => ipcRenderer.on('low-stock-alert', (_, data) => callback(data)),
+  onLowStockAlert: (callback) => {
+    const handler = (_, data) => callback(data);
+    ipcRenderer.on('low-stock-alert', handler);
+    // Return a cleanup function so callers can remove the listener
+    return () => ipcRenderer.removeListener('low-stock-alert', handler);
+  },
 });
