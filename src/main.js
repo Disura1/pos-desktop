@@ -1,3 +1,6 @@
+const { updateElectronApp } = require('update-electron-app');
+updateElectronApp(); // checks your GitHub Releases automatically, no config needed
+
 const { app, BrowserWindow, ipcMain, Notification, Menu, Tray, nativeImage } = require('electron');
 const path = require('node:path');
 
