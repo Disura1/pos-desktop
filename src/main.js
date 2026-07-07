@@ -5,6 +5,9 @@ const { app, BrowserWindow, ipcMain, Notification, Menu, Tray, nativeImage, scre
 const path = require('node:path');
 const fs = require('node:fs');
 
+const Store = require('electron-store');
+const offlineStore = new Store({ name: 'offline-data' });
+
 if (require('electron-squirrel-startup')) app.quit();
 
 let mainWindow;
@@ -106,6 +109,30 @@ ipcMain.handle('export-file', async (event, { defaultName, content }) => {
   if (canceled || !filePath) return { saved: false };
   fs.writeFileSync(filePath, content, 'utf-8');
   return { saved: true, path: filePath };
+});
+
+ipcMain.handle('offline-get-catalog', () => offlineStore.get('catalog', []));
+
+ipcMain.handle('offline-set-catalog', (event, data) => {
+  if (!Array.isArray(data)) return false;
+  offlineStore.set('catalog', data);
+  return true;
+});
+
+ipcMain.handle('offline-get-queue', () => offlineStore.get('queue', []));
+
+ipcMain.handle('offline-add-queue', (event, sale) => {
+  const queue = offlineStore.get('queue', []);
+  const entry = { localId: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, sale, queuedAt: Date.now() };
+  queue.push(entry);
+  offlineStore.set('queue', queue);
+  return entry.localId;
+});
+
+ipcMain.handle('offline-remove-queue', (event, localId) => {
+  const queue = offlineStore.get('queue', []).filter((q) => q.localId !== localId);
+  offlineStore.set('queue', queue);
+  return true;
 });
 
 ipcMain.handle('print-receipt', async (event, receiptHtml) => {

@@ -6,6 +6,8 @@ import { getActiveDiscounts } from '../../services/discountService';
 import { getSaleDetail } from '../../services/saleService';
 import { printReceipt } from '../../utils/printUtils';
 import { fmtCurrency, calcDiscount } from '../../utils/formatters';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import { cacheCatalog, getCachedCatalog, queueOfflineSale, syncOfflineQueue, isNetworkError } from '../../services/offlineService';
 
 const POSPage = () => {
   const { user } = useAuth();
@@ -34,6 +36,28 @@ const POSPage = () => {
     window.electronAPI?.sendCartUpdate({ cart, subtotal, discountAmt, total });
   }, [cart, subtotal, discountAmt, total]);
 
+  const isOnline = useOnlineStatus();
+
+// Refresh the local catalog cache every 5 minutes while online
+useEffect(() => {
+  if (!branchId || !isOnline) return;
+  cacheCatalog(branchId);
+  const t = setInterval(() => cacheCatalog(branchId), 5 * 60 * 1000);
+  return () => clearInterval(t);
+}, [branchId, isOnline]);
+
+// Try to push any queued offline sales every 20 seconds once back online
+useEffect(() => {
+  if (!isOnline) return;
+  const t = setInterval(() => {
+    syncOfflineQueue(({ success, error }) => {
+      if (success) showMsg('success', '✅ An offline sale was synced successfully.');
+      else showMsg('error', `⚠️ An offline sale failed to sync: ${error}`);
+    });
+  }, 20000);
+  return () => clearInterval(t);
+}, [isOnline]);
+
   const showMsg = (type, msg) => {
     if (type === 'success') { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(''), 3000); }
     else { setErrorMsg(msg); setTimeout(() => setErrorMsg(''), 4000); }
@@ -55,15 +79,23 @@ const POSPage = () => {
   }, []);
 
   const handleScan = async (e) => {
-    if (e.key !== 'Enter' || !barcode.trim()) return;
-    try {
-      const product = await scanProductByBarcode(barcode.trim(), branchId);
-      addToCart(product);
-    } catch {
-      showMsg('error', `Barcode "${barcode}" not found!`);
+  if (e.key !== 'Enter' || !barcode.trim()) return;
+  const code = barcode.trim();
+  try {
+    const product = await scanProductByBarcode(code, branchId);
+    addToCart(product);
+  } catch (err) {
+    if (isNetworkError(err)) {
+      const catalog = await getCachedCatalog();
+      const found = catalog.find((p) => p.barcode === code);
+      if (found) { addToCart(found); setBarcode(''); return; }
+      showMsg('error', `Offline — "${code}" not found in cached catalog`);
+    } else {
+      showMsg('error', `Barcode "${code}" not found!`);
     }
-    setBarcode('');
-  };
+  }
+  setBarcode('');
+};
 
   const handleSearch = async (q) => {
     setSearchQ(q);
@@ -125,7 +157,36 @@ const POSPage = () => {
       setSelectedDiscount(null);
       setAmountTendered('');
     } catch (err) {
-      showMsg('error', err.response?.data?.error || 'Checkout failed!');
+      if (isNetworkError(err)) {
+        // No connection — queue the sale locally instead of losing it
+        const payload = {
+          cart: cart.map(i => ({ sku: i.sku, quantity: i.quantity, variant_price: i.price, base_price: i.price })),
+          subtotal, discountId: selectedDiscount?.id || null,
+          discountAmount: discountAmt, total, paymentMethod,
+          amountTendered: parseFloat(amountTendered || total), branchId,
+        };
+        await queueOfflineSale(payload);
+
+        const offlineReceiptNo = `OFFLINE-${Date.now()}`;
+        await printReceipt({
+          sale: {
+            receipt_number: offlineReceiptNo,
+            sale_date: new Date(),
+            subtotal, discount_amount: discountAmt, total_amount: total,
+            amount_tendered: parseFloat(amountTendered || total), change_amount: change,
+          },
+          items: cart.map(i => ({ product_name: i.name, sku: i.sku, size: i.size, color: i.color, quantity: i.quantity, total_price: i.price * i.quantity })),
+          branchName: user.branchName,
+          cashierName: user.fullName || user.username,
+        });
+
+        showMsg('success', `⚠️ Offline — sale saved as ${offlineReceiptNo}, will sync automatically once reconnected.`);
+        setCart([]);
+        setSelectedDiscount(null);
+        setAmountTendered('');
+      } else {
+        showMsg('error', err.response?.data?.error || 'Checkout failed!');
+      }
     } finally {
       setLoading(false);
       scanRef.current?.focus();
@@ -212,6 +273,12 @@ const POSPage = () => {
             {cart.length} item{cart.length !== 1 ? 's' : ''}
           </div>
         </div>
+
+        {!isOnline && (
+          <div className="alert alert-danger" style={{ margin: '0 14px 10px' }}>
+            🔴 Offline — sales will be saved locally and synced automatically
+          </div>
+        )}
 
         {cart.length === 0 ? (
           <div className="empty-state" style={{ flex: 1 }}>

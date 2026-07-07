@@ -20,4 +20,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('cart-updated', handler);
   },
   exportFile: (defaultName, content) => ipcRenderer.invoke('export-file', { defaultName, content }),
+  offlineCache: {
+    getCatalog: () => ipcRenderer.invoke('offline-get-catalog'),
+    setCatalog: (data) => ipcRenderer.invoke('offline-set-catalog', data),
+    getQueue: () => ipcRenderer.invoke('offline-get-queue'),
+    addToQueue: (sale) => ipcRenderer.invoke('offline-add-queue', sale),
+    removeFromQueue: (localId) => ipcRenderer.invoke('offline-remove-queue', localId),
+  },
 });
