@@ -15,8 +15,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   sendCartUpdate: (cartData) => ipcRenderer.invoke('cart-update', cartData),
   onCartUpdate: (callback) => {
-  const handler = (_, data) => callback(data);
-  ipcRenderer.on('cart-updated', handler);
-  return () => ipcRenderer.removeListener('cart-updated', handler);
-},
+    const handler = (_, data) => callback(data);
+    ipcRenderer.on('cart-updated', handler);
+    return () => ipcRenderer.removeListener('cart-updated', handler);
+  },
+  exportFile: (defaultName, content) => ipcRenderer.invoke('export-file', { defaultName, content }),
 });

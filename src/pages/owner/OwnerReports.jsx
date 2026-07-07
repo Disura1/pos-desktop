@@ -33,6 +33,12 @@ const MiniBarChart = ({ data, valueKey = 'revenue' }) => {
   );
 };
 
+const handleExport = async () => {
+  const csv = 'Date,Branch,Total\n' + rows.map(r => `${r.date},${r.branch},${r.total}`).join('\n');
+  const result = await window.electronAPI.exportFile('sales-report.csv', csv);
+  if (result.saved) showMsg('success', `Saved to ${result.path}`);
+};
+
 const OwnerReports = () => {
   const [branches, setBranches] = useState([]);
   const [branchId, setBranchId] = useState('');

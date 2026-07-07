@@ -96,6 +96,16 @@ ipcMain.handle('cart-update', (event, cartData) => {
   customerWindow?.webContents.send('cart-updated', cartData);
 });
 
+ipcMain.handle('export-file', async (event, { defaultName, content }) => {
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    defaultPath: defaultName,
+    filters: [{ name: 'CSV', extensions: ['csv'] }],
+  });
+  if (canceled || !filePath) return { saved: false };
+  fs.writeFileSync(filePath, content, 'utf-8');
+  return { saved: true, path: filePath };
+});
+
 ipcMain.handle('print-receipt', async (event, receiptHtml) => {
   // Basic validation — only accept strings, cap size at 100KB
   if (typeof receiptHtml !== 'string' || receiptHtml.length > 100000) {
