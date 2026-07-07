@@ -3,6 +3,7 @@ import { getDailySummary, getRevenueByPeriod, getTopProducts, getDateRangeReport
 import { getBranches } from '../../services/branchService';
 import { getSaleHistory } from '../../services/saleService';
 import { fmtCurrency, fmtDate, fmtDateTime } from '../../utils/formatters';
+import { exportToCSV } from '../../utils/csvExport';
 
 const localDateStr = (d = new Date()) => {
   const y = d.getFullYear();
@@ -33,12 +34,6 @@ const MiniBarChart = ({ data, valueKey = 'revenue' }) => {
   );
 };
 
-const handleExport = async () => {
-  const csv = 'Date,Branch,Total\n' + rows.map(r => `${r.date},${r.branch},${r.total}`).join('\n');
-  const result = await window.electronAPI.exportFile('sales-report.csv', csv);
-  if (result.saved) showMsg('success', `Saved to ${result.path}`);
-};
-
 const OwnerReports = () => {
   const [branches, setBranches] = useState([]);
   const [branchId, setBranchId] = useState('');
@@ -50,6 +45,7 @@ const OwnerReports = () => {
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
+  const [exportNote, setExportNote] = useState('');
 
   useEffect(() => { getBranches().then(b => setBranches(b.filter(x => x.is_active))); }, []);
 
@@ -72,6 +68,40 @@ const OwnerReports = () => {
   };
 
   useEffect(() => { loadData(); }, []);
+
+  const runExport = async (filename, headers, rows) => {
+    const result = await exportToCSV(filename, headers, rows);
+    if (result.saved) {
+      setExportNote(`Saved to ${result.path}`);
+      setTimeout(() => setExportNote(''), 4000);
+    }
+  };
+
+  const exportChart = () => runExport('daily-revenue.csv', [
+    { label: 'Date', value: (r) => fmtDate(r.date) },
+    { label: 'Revenue', value: 'revenue' },
+    { label: 'Transactions', value: 'transactions' },
+  ], chartData);
+
+  const exportProducts = () => runExport('top-products.csv', [
+    { label: 'Product', value: 'product_name' },
+    { label: 'SKU', value: 'sku' },
+    { label: 'Size', value: 'size' },
+    { label: 'Color', value: 'color' },
+    { label: 'Sold', value: 'total_sold' },
+    { label: 'Revenue', value: 'total_revenue' },
+  ], topProducts);
+
+  const exportSales = () => runExport('sales-list.csv', [
+    { label: 'Sale #', value: (r) => r.receipt_number || `#${r.id}` },
+    { label: 'Date & Time', value: (r) => fmtDateTime(r.sale_date) },
+    { label: 'Branch', value: 'branch_name' },
+    { label: 'Cashier', value: 'cashier_name' },
+    { label: 'Items', value: 'item_count' },
+    { label: 'Discount', value: 'discount_amount' },
+    { label: 'Total', value: 'total_amount' },
+    { label: 'Payment', value: 'payment_method' },
+  ], sales);
 
   const tabs = [
     { id: 'summary', label: 'Summary' },
@@ -132,6 +162,8 @@ const OwnerReports = () => {
         ))}
       </div>
 
+      {exportNote && <div className="alert alert-success" style={{ marginBottom: 16 }}>{exportNote}</div>}
+
       {/* Summary Tab */}
       {activeTab === 'summary' && summary && (
         <div className="kpi-grid">
@@ -161,7 +193,10 @@ const OwnerReports = () => {
       {/* Chart Tab */}
       {activeTab === 'chart' && (
         <div className="card">
-          <div className="card-header"><div className="card-title">Daily Revenue</div></div>
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="card-title">Daily Revenue</div>
+            <button className="btn btn-outline btn-sm" onClick={exportChart}>⬇ Export CSV</button>
+          </div>
           <MiniBarChart data={chartData} />
           <div style={{ marginTop: 16 }}>
             <table>
@@ -183,7 +218,10 @@ const OwnerReports = () => {
       {/* Top Products Tab */}
       {activeTab === 'products' && (
         <div className="card">
-          <div className="card-header"><div className="card-title">Top Selling Products</div></div>
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="card-title">Top Selling Products</div>
+            <button className="btn btn-outline btn-sm" onClick={exportProducts}>⬇ Export CSV</button>
+          </div>
           <div className="table-wrap">
             <table>
               <thead><tr><th>#</th><th>Product</th><th>SKU</th><th>Sold</th><th>Revenue</th></tr></thead>
@@ -209,9 +247,12 @@ const OwnerReports = () => {
       {/* Sales List Tab */}
       {activeTab === 'sales' && (
         <div className="card">
-          <div className="card-header">
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div className="card-title">Recent Sales</div>
-            <span style={{ fontSize: 12, color: 'var(--text-sub)' }}>{sales.length} records</span>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-sub)' }}>{sales.length} records</span>
+              <button className="btn btn-outline btn-sm" onClick={exportSales}>⬇ Export CSV</button>
+            </div>
           </div>
           <div className="table-wrap">
             <table>

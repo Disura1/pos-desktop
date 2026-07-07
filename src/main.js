@@ -85,6 +85,12 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
   createCustomerWindow();
+  screen.on('display-added', () => {
+    if (!customerWindow) createCustomerWindow();
+  });
+  screen.on('display-removed', () => {
+    if (customerWindow && screen.getAllDisplays().length <= 1) customerWindow.close();
+  });
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -102,7 +108,7 @@ ipcMain.handle('cart-update', (event, cartData) => {
 });
 
 ipcMain.handle('export-file', async (event, { defaultName, content }) => {
-  const { canceled, filePath } = await dialog.showSaveDialog({
+  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
     defaultPath: defaultName,
     filters: [{ name: 'CSV', extensions: ['csv'] }],
   });

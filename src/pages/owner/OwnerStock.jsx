@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getInventory, getLowStock } from '../../services/stockService';
 import { getBranches } from '../../services/branchService';
 import { fmtCurrency } from '../../utils/formatters';
+import { exportToCSV } from '../../utils/csvExport';
 
 const OwnerStock = () => {
   const [inventory, setInventory] = useState([]);
@@ -11,6 +12,7 @@ const OwnerStock = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('inventory');
+  const [exportNote, setExportNote] = useState('');
 
   useEffect(() => {
     getBranches().then(b => setBranches(b.filter(x => x.is_active)));
@@ -40,6 +42,22 @@ const OwnerStock = () => {
     `${i.product_name} ${i.sku} ${i.color} ${i.size}`.toLowerCase().includes(search.toLowerCase())
   );
 
+  const exportInventory = async () => {
+    const result = await exportToCSV('inventory.csv', [
+      { label: 'Product', value: 'product_name' },
+      { label: 'SKU', value: 'sku' },
+      { label: 'Size', value: 'size' },
+      { label: 'Color', value: 'color' },
+      { label: 'Price', value: (r) => r.variant_price || r.base_price },
+      { label: 'Branch', value: 'branch_name' },
+      { label: 'Stock', value: 'stock_qty' },
+    ], filtered);
+    if (result.saved) {
+      setExportNote(`Saved to ${result.path}`);
+      setTimeout(() => setExportNote(''), 4000);
+    }
+  };
+
   return (
     <div className="page-content">
       {/* Filters */}
@@ -56,6 +74,7 @@ const OwnerStock = () => {
           <input className="form-control" placeholder="Product name, SKU, color..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-outline btn-sm" onClick={exportInventory} style={{ height: 'fit-content' }}>⬇ Export CSV</button>
           <div className="card" style={{ padding: '10px 16px', textAlign: 'center', border: '1.5px solid var(--border)' }}>
             <div style={{ fontWeight: 800, fontSize: 18 }}>{filtered.length}</div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Total Variants</div>
@@ -66,6 +85,8 @@ const OwnerStock = () => {
           </div>
         </div>
       </div>
+
+      {exportNote && <div className="alert alert-success" style={{ marginBottom: 16 }}>{exportNote}</div>}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '2px solid var(--border)' }}>

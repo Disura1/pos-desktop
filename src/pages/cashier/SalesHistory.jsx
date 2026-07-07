@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getSaleHistory, getSaleDetail } from '../../services/saleService';
 import { printReceipt } from '../../utils/printUtils';
 import { fmtCurrency, fmtDateTime, fmtDate } from '../../utils/formatters';
+import { exportToCSV } from '../../utils/csvExport';
 
 // Use local date (not UTC) to match the server's Sri Lanka timezone
 const localDateStr = (d = new Date()) => {
@@ -90,6 +91,15 @@ const SalesHistory = () => {
     cash:     filtered.filter(r => r.payment_method === 'cash').length,
     card:     filtered.filter(r => r.payment_method === 'card').length,
   }), [filtered]);
+
+  const exportSales = async () => {
+    await exportToCSV('my-sales.csv', [
+      { label: 'Sale #', value: (r) => r.receipt_number || `#${r.id}` },
+      { label: 'Date & Time', value: (r) => fmtDateTime(r.sale_date) },
+      { label: 'Total', value: 'total_amount' },
+      { label: 'Payment', value: 'payment_method' },
+    ], filtered);
+  };
 
   const hasActiveFilters = paymentFilter !== 'all' || minPrice || maxPrice || searchId;
 
@@ -261,6 +271,8 @@ const SalesHistory = () => {
           </div>
         ))}
       </div>
+
+      <button className="btn btn-outline btn-sm" style={{ marginBottom: 16 }} onClick={exportSales}>⬇ Export CSV</button>
 
       {detailError && (
         <div className="alert alert-danger" style={{ marginBottom: 12 }}>
