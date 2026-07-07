@@ -28,6 +28,8 @@ import SalesHistory from "./pages/cashier/SalesHistory";
 // Shared pages
 import CategoryManager from "./pages/shared/CategoryManager";
 
+import CustomerDisplayPage from "./pages/CustomerDisplayPage";
+
 const DEFAULT_VIEW = {
   Owner: "owner-dashboard",
   Admin: "owner-dashboard",
@@ -36,6 +38,17 @@ const DEFAULT_VIEW = {
 };
 
 const AppInner = () => {
+  const App = () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('customerDisplay') === '1') {
+    return <CustomerDisplayPage />; // no auth needed — just a passive display
+  }
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
+  );
+};
   const { user, loading } = useAuth();
   const [view, setView] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -119,11 +132,5 @@ const AppInner = () => {
     </div>
   );
 };
-
-const App = () => (
-  <AuthProvider>
-    <AppInner />
-  </AuthProvider>
-);
 
 export default App;

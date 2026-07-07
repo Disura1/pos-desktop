@@ -1,13 +1,15 @@
 const { updateElectronApp } = require('update-electron-app');
 updateElectronApp(); // checks your GitHub Releases automatically, no config needed
 
-const { app, BrowserWindow, ipcMain, Notification, Menu, Tray, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification, Menu, Tray, nativeImage, screen, dialog } = require('electron');
 const path = require('node:path');
+const fs = require('node:fs');
 
 if (require('electron-squirrel-startup')) app.quit();
 
 let mainWindow;
 let tray;
+let customerWindow = null;
 
 // __dirname is .webpack/main/ after bundling — assets are copied there by CopyWebpackPlugin
 const ICON_PATH = path.join(__dirname, 'assets', 'icon.ico');
@@ -53,9 +55,32 @@ const createTray = () => {
   tray.on('click', () => mainWindow.show());
 };
 
+const createCustomerWindow = () => {
+  const displays = screen.getAllDisplays();
+  const externalDisplay = displays.find((d) => d.bounds.x !== 0 || d.bounds.y !== 0);
+  if (!externalDisplay) return; // only one screen — nothing to open
+
+  customerWindow = new BrowserWindow({
+    x: externalDisplay.bounds.x,
+    y: externalDisplay.bounds.y,
+    width: externalDisplay.bounds.width,
+    height: externalDisplay.bounds.height,
+    fullscreen: true,
+    frame: false,
+    webPreferences: {
+      preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  customerWindow.loadURL(`${MAIN_WINDOW_WEBPACK_ENTRY}?customerDisplay=1`);
+  customerWindow.on('closed', () => { customerWindow = null; });
+};
+
 app.whenReady().then(() => {
   createWindow();
   createTray();
+  createCustomerWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -66,6 +91,10 @@ app.on('window-all-closed', () => {
 });
 
 // ── IPC Handlers ──────────────────────────────────────────────────
+
+ipcMain.handle('cart-update', (event, cartData) => {
+  customerWindow?.webContents.send('cart-updated', cartData);
+});
 
 ipcMain.handle('print-receipt', async (event, receiptHtml) => {
   // Basic validation — only accept strings, cap size at 100KB

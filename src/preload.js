@@ -13,4 +13,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Return a cleanup function so callers can remove the listener
     return () => ipcRenderer.removeListener('low-stock-alert', handler);
   },
+  sendCartUpdate: (cartData) => ipcRenderer.invoke('cart-update', cartData),
+  onCartUpdate: (callback) => {
+  const handler = (_, data) => callback(data);
+  ipcRenderer.on('cart-updated', handler);
+  return () => ipcRenderer.removeListener('cart-updated', handler);
+},
 });

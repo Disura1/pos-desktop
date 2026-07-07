@@ -30,6 +30,10 @@ const POSPage = () => {
     scanRef.current?.focus();
   }, []);
 
+  useEffect(() => {
+    window.electronAPI?.sendCartUpdate({ cart, subtotal, discountAmt, total });
+  }, [cart, subtotal, discountAmt, total]);
+
   const showMsg = (type, msg) => {
     if (type === 'success') { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(''), 3000); }
     else { setErrorMsg(msg); setTimeout(() => setErrorMsg(''), 4000); }
