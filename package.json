@@ -18,6 +18,7 @@
     "email": "disurasandaruwan0@gmail.com"
   },
   "license": "MIT",
+  "repository": "Disura1/pos-desktop",
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@babel/preset-react": "^7.28.5",

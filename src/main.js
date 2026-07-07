@@ -1,6 +1,3 @@
-const { updateElectronApp } = require('update-electron-app');
-updateElectronApp(); // checks your GitHub Releases automatically, no config needed
-
 const { app, BrowserWindow, ipcMain, Notification, Menu, Tray, nativeImage, screen, dialog } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
@@ -9,6 +6,15 @@ const Store = require('electron-store');
 const offlineStore = new Store({ name: 'offline-data' });
 
 if (require('electron-squirrel-startup')) app.quit();
+// Auto-update only makes sense in a packaged, installed build — running it
+// during `npm start` throws because there's no packaged app to check/update.
+if (app.isPackaged) {
+  const { updateElectronApp } = require('update-electron-app');
+  updateElectronApp({
+    repo: 'Disura1/pos-desktop',
+    updateInterval: '1 hour',
+  });
+}
 
 let mainWindow;
 let tray;
