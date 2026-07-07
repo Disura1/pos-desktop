@@ -35,10 +35,6 @@ const POSPage = () => {
     scanRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    window.electronAPI?.sendCartUpdate({ cart, subtotal, discountAmt, total });
-  }, [cart, subtotal, discountAmt, total]);
-
   const isOnline = useOnlineStatus();
 
 // Refresh the local catalog cache every 5 minutes while online
@@ -51,15 +47,15 @@ useEffect(() => {
 
 // Try to push any queued offline sales every 20 seconds once back online
 useEffect(() => {
-  if (!isOnline) return;
-  const t = setInterval(() => {
-    syncOfflineQueue(({ success, error }) => {
-      if (success) showMsg('success', '✅ An offline sale was synced successfully.');
-      else showMsg('error', `⚠️ An offline sale failed to sync: ${error}`);
-    });
-  }, 20000);
-  return () => clearInterval(t);
-}, [isOnline]);
+    if (!isOnline) return;
+    const t = setInterval(() => {
+      syncOfflineQueue(({ success, error }) => {
+        if (success) showMsg('success', '✅ An offline sale was synced successfully.');
+        else showMsg('error', `⚠️ An offline sale failed to sync: ${error}`);
+      });
+    }, 20000);
+    return () => clearInterval(t);
+  }, [isOnline]);
 
   const showMsg = (type, msg) => {
     if (type === 'success') { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(''), 3000); }
@@ -82,23 +78,23 @@ useEffect(() => {
   }, []);
 
   const handleScan = async (e) => {
-  if (e.key !== 'Enter' || !barcode.trim()) return;
-  const code = barcode.trim();
-  try {
-    const product = await scanProductByBarcode(code, branchId);
-    addToCart(product);
-  } catch (err) {
-    if (isNetworkError(err)) {
-      const catalog = await getCachedCatalog();
-      const found = catalog.find((p) => p.barcode === code);
-      if (found) { addToCart(found); setBarcode(''); return; }
-      showMsg('error', `Offline — "${code}" not found in cached catalog`);
-    } else {
-      showMsg('error', `Barcode "${code}" not found!`);
+    if (e.key !== 'Enter' || !barcode.trim()) return;
+    const code = barcode.trim();
+    try {
+      const product = await scanProductByBarcode(code, branchId);
+      addToCart(product);
+    } catch (err) {
+      if (isNetworkError(err)) {
+        const catalog = await getCachedCatalog();
+        const found = catalog.find((p) => p.barcode === code);
+        if (found) { addToCart(found); setBarcode(''); return; }
+        showMsg('error', `Offline — "${code}" not found in cached catalog`);
+      } else {
+        showMsg('error', `Barcode "${code}" not found!`);
+      }
     }
-  }
-  setBarcode('');
-};
+    setBarcode('');
+  };
 
   const handleSearch = async (q) => {
     setSearchQ(q);
@@ -129,6 +125,10 @@ useEffect(() => {
   const discountAmt = selectedDiscount ? calcDiscount(subtotal, selectedDiscount) : 0;
   const total = Math.max(0, subtotal - discountAmt);
   const change = Math.max(0, parseFloat(amountTendered || 0) - total);
+
+  useEffect(() => {
+    window.electronAPI?.sendCartUpdate({ cart, subtotal, discountAmt, total });
+  }, [cart, subtotal, discountAmt, total]);
 
   const handleCheckout = async () => {
     if (cart.length === 0) { showMsg('error', 'Cart is empty!'); return; }

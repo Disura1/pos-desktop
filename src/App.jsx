@@ -38,17 +38,6 @@ const DEFAULT_VIEW = {
 };
 
 const AppInner = () => {
-  const App = () => {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('customerDisplay') === '1') {
-    return <CustomerDisplayPage />; // no auth needed — just a passive display
-  }
-  return (
-    <AuthProvider>
-      <AppInner />
-    </AuthProvider>
-  );
-};
   const { user, loading } = useAuth();
   const [view, setView] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -56,7 +45,6 @@ const AppInner = () => {
   useEffect(() => {
     if (user) {
       setView(DEFAULT_VIEW[user.role] || "pos");
-      // Cashier defaults to sidebar closed for a cleaner POS view
       setSidebarOpen(user.role !== "Cashier");
     } else {
       setView(null);
@@ -114,11 +102,9 @@ const AppInner = () => {
 
   return (
     <div className="app-shell">
-      {/* Sidebar — hidden when closed */}
       {sidebarOpen && (
         <Sidebar currentView={view} setView={(v) => { setView(v); if (user.role === "Cashier") setSidebarOpen(false); }} />
       )}
-
       <div className="main-area" style={{ position: "relative" }}>
         <TopBar
           currentView={view}
@@ -130,6 +116,18 @@ const AppInner = () => {
         {renderPage()}
       </div>
     </div>
+  );
+};
+
+const App = () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('customerDisplay') === '1') {
+    return <CustomerDisplayPage />; // no auth needed — just a passive display
+  }
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
   );
 };
 
