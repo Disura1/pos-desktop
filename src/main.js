@@ -84,6 +84,7 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+  app.setLoginItemSettings({ openAtLogin: true });
 });
 
 app.on('window-all-closed', () => {
