@@ -16,6 +16,7 @@ const ICON_PATH = path.join(__dirname, 'assets', 'icon.ico');
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
+    kiosk: process.env.KIOSK_MODE === 'true',
     width: 1440,
     height: 900,
     minWidth: 1200,
