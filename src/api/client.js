@@ -11,7 +11,10 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   res => res,
   err => {
-    if (err.response?.status === 401) {
+    const isLoginRequest = err.config?.url?.includes('/auth/login');
+    // A 401 on the login request itself just means "wrong password" —
+    // that's an expected error to show on the login form, not a session expiry.
+    if (err.response?.status === 401 && !isLoginRequest) {
       localStorage.removeItem('tg_user');
       localStorage.removeItem('tg_token');
       localStorage.removeItem('tg_last_refresh');
