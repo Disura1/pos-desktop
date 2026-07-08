@@ -4,7 +4,6 @@ import {
   createBranch,
   updateBranch,
   deleteBranch,
-  hardDeleteBranch,
 } from "../../services/branchService";
 
 const ConfirmDialog = ({ message, onConfirm, onCancel, confirmLabel = 'Confirm', confirmClass = 'btn-danger' }) => (
@@ -103,22 +102,6 @@ const BranchManager = () => {
     try {
       await deleteBranch(b.id);
       showMsg(`"${b.branch_name}" deactivated.`);
-      load();
-    } catch (err) {
-      showMsg('Error: ' + (err.response?.data?.error || err.message), 'error');
-    }
-  };
-
-  const handleHardDelete = async (b) => {
-    const ok = await confirm(
-      `⚠️ PERMANENTLY DELETE "${b.branch_name}"?\n\nThis will remove the branch and all its inventory records.\nSales history will be kept.\n\nThis CANNOT be undone. Are you sure?`,
-      'Delete Permanently',
-      'btn-danger'
-    );
-    if (!ok) return;
-    try {
-      await hardDeleteBranch(b.id);
-      showMsg(`"${b.branch_name}" permanently deleted.`);
       load();
     } catch (err) {
       showMsg('Error: ' + (err.response?.data?.error || err.message), 'error');
@@ -240,13 +223,6 @@ const BranchManager = () => {
                     Deactivate
                   </button>
                 )}
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => handleHardDelete(b)}
-                  title="Permanently delete this branch"
-                >
-                  Delete
-                </button>
               </div>
             </div>
           ))
