@@ -74,7 +74,18 @@ const OwnerStock = () => {
           <input className="form-control" placeholder="Product name, SKU, color..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button className="btn btn-outline btn-sm" onClick={exportInventory} style={{ height: 'fit-content' }}>⬇ Export CSV</button>
+          <button
+            className="btn btn-sm"
+            onClick={exportInventory}
+            style={{
+              background: 'var(--pink-light)',
+              color: 'var(--pink-dark)',
+              border: '1.5px solid var(--pink-mid)',
+              fontWeight: 700,
+            }}
+          >
+            ⬇ Export CSV
+          </button>
           <div className="card" style={{ padding: '10px 16px', textAlign: 'center', border: '1.5px solid var(--border)' }}>
             <div style={{ fontWeight: 800, fontSize: 18 }}>{filtered.length}</div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Total Variants</div>
