@@ -70,6 +70,10 @@ const UserManager = () => {
   };
 
   const handleSave = async () => {
+    if (!isOwnerRole && !form.branch_id) {
+      showMsg("Branch is required for this role", "danger");
+      return;
+    }
     setSaving(true);
     try {
       if (editUser) {
