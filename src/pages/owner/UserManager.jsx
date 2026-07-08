@@ -258,6 +258,11 @@ const UserManager = () => {
             <div className="modal-title">
               {editUser ? "✏️ Edit User" : "👤 New User"}
             </div>
+            {msg.text && (
+              <div className={`alert alert-${msg.type}`} style={{ marginBottom: 14 }}>
+                {msg.text}
+              </div>
+            )}
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Full Name</label>
@@ -407,6 +412,11 @@ const UserManager = () => {
             <div className="modal-title">
               🔑 Reset Password — {editUser?.username}
             </div>
+            {msg.text && (
+              <div className={`alert alert-${msg.type}`} style={{ marginBottom: 14 }}>
+                {msg.text}
+              </div>
+            )}
             <div className="form-group">
               <label className="form-label">New Password</label>
               <input
