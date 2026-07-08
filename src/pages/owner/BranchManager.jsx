@@ -77,7 +77,10 @@ const BranchManager = () => {
   };
 
   const handleSave = async () => {
-    if (!form.branch_name.trim()) return;
+    if (!form.branch_name.trim()) {
+      showMsg("Branch name is required", "error");
+      return;
+    }
     setSaving(true);
     try {
       if (editBranch) await updateBranch(editBranch.id, form);
@@ -239,6 +242,11 @@ const BranchManager = () => {
             <div className="modal-title">
               {editBranch ? "✏️ Edit Branch" : "🏪 New Branch"}
             </div>
+            {msg.text && (
+              <div className={`alert alert-${msg.type === "error" ? "danger" : "success"}`} style={{ marginBottom: 14 }}>
+                {msg.text}
+              </div>
+            )}
             <div className="form-group">
               <label className="form-label">Branch Name *</label>
               <input
