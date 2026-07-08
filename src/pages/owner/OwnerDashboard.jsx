@@ -47,7 +47,7 @@ const MiniBarChart = ({ data }) => {
             <div
               style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 3 }}
             >
-              {new Date(d.date + 'T00:00:00').toLocaleDateString("en-LK", {
+              {new Date(String(d.date).slice(0, 10) + 'T00:00:00').toLocaleDateString("en-LK", {
                 weekday: "short",
               })}
             </div>
