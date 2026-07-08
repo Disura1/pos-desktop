@@ -141,45 +141,55 @@ const UserManager = () => {
     return matchesSearch && matchesRole && matchesBranch && matchesStatus;
   });
 
+  const clearFilters = () => {
+    setRoleFilter("");
+    setBranchFilter("");
+    setStatusFilter("");
+  };
+
+  const hasActiveFilters = roleFilter || branchFilter || statusFilter;
+
   return (
     <div className="page-content">
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
           flexWrap: "wrap",
+          alignItems: "center",
           gap: 10,
+          marginBottom: 16,
         }}
       >
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <input
-            className="form-control"
-            style={{ maxWidth: 260 }}
-            placeholder="Search users..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <select className="form-control" style={{ maxWidth: 150 }} value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-            <option value="">All Roles</option>
-            {roles.map((r) => (
-              <option key={r.id} value={r.role_name}>{r.role_name}</option>
-            ))}
-          </select>
-          <select className="form-control" style={{ maxWidth: 170 }} value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)}>
-            <option value="">All Branches</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>{b.branch_name}</option>
-            ))}
-          </select>
-          <select className="form-control" style={{ maxWidth: 140 }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-        <button className="btn btn-primary" onClick={openCreate}>
+        <input
+          className="form-control"
+          style={{ flex: "1 1 200px", maxWidth: 260 }}
+          placeholder="Search users..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select className="form-control" style={{ flex: "0 1 150px" }} value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+          <option value="">All Roles</option>
+          {roles.map((r) => (
+            <option key={r.id} value={r.role_name}>{r.role_name}</option>
+          ))}
+        </select>
+        <select className="form-control" style={{ flex: "0 1 170px" }} value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)}>
+          <option value="">All Branches</option>
+          {branches.map((b) => (
+            <option key={b.id} value={b.id}>{b.branch_name}</option>
+          ))}
+        </select>
+        <select className="form-control" style={{ flex: "0 1 140px" }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        {hasActiveFilters && (
+          <button className="btn btn-ghost btn-sm" onClick={clearFilters}>
+            ✕ Clear Filters
+          </button>
+        )}
+        <button className="btn btn-primary" style={{ marginLeft: "auto" }} onClick={openCreate}>
           + New User
         </button>
       </div>
