@@ -114,7 +114,18 @@ const DiscountManager = () => {
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.value) return;
+    if (!form.name || !form.name.trim()) {
+      showMsg("Discount name is required", "danger");
+      return;
+    }
+    if (!form.value || parseFloat(form.value) <= 0) {
+      showMsg("Discount value must be greater than 0", "danger");
+      return;
+    }
+    if (form.type === "percentage" && parseFloat(form.value) > 100) {
+      showMsg("Percentage discount cannot exceed 100%", "danger");
+      return;
+    }
     setSaving(true);
     try {
       if (editDiscount) await updateDiscount(editDiscount.id, form);
@@ -259,6 +270,11 @@ const DiscountManager = () => {
             <div className="modal-title">
               {editDiscount ? "✏️ Edit Discount" : "🏷️ New Discount"}
             </div>
+            {msg.text && (
+              <div className={`alert alert-${msg.type}`} style={{ marginBottom: 14 }}>
+                {msg.text}
+              </div>
+            )}
             <div className="form-group">
               <label className="form-label">Discount Name *</label>
               <input
