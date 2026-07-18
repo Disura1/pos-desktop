@@ -27,6 +27,10 @@ const POSPage = () => {
   const [heldSales, setHeldSales] = useState([]);
   const [showHeldPanel, setShowHeldPanel] = useState(false);
 
+  useEffect(() => {
+    getHeldSales().then(setHeldSales).catch(() => {});
+  }, []);
+
   const branchId = user?.branchId;
 
   useEffect(() => {
@@ -37,16 +41,16 @@ const POSPage = () => {
 
   const isOnline = useOnlineStatus();
 
-// Refresh the local catalog cache every 5 minutes while online
-useEffect(() => {
-  if (!branchId || !isOnline) return;
-  cacheCatalog(branchId);
-  const t = setInterval(() => cacheCatalog(branchId), 5 * 60 * 1000);
-  return () => clearInterval(t);
-}, [branchId, isOnline]);
+  // Refresh the local catalog cache every 5 minutes while online
+  useEffect(() => {
+    if (!branchId || !isOnline) return;
+    cacheCatalog(branchId);
+    const t = setInterval(() => cacheCatalog(branchId), 5 * 60 * 1000);
+    return () => clearInterval(t);
+  }, [branchId, isOnline]);
 
-// Try to push any queued offline sales every 20 seconds once back online
-useEffect(() => {
+  // Try to push any queued offline sales every 20 seconds once back online
+  useEffect(() => {
     if (!isOnline) return;
     const t = setInterval(() => {
       syncOfflineQueue(({ success, error }) => {
@@ -204,6 +208,7 @@ useEffect(() => {
       setSelectedDiscount(null);
       setAmountTendered('');
       showMsg('success', '⏸ Sale held. Start a new bill anytime.');
+      getHeldSales().then(setHeldSales).catch(() => {});
     } catch (err) {
       showMsg('error', err.response?.data?.error || 'Could not hold sale');
     }
@@ -225,6 +230,7 @@ useEffect(() => {
       setSelectedDiscount(discounts.find(d => d.id === data.discountId) || null);
       setShowHeldPanel(false);
       showMsg('success', '▶️ Sale resumed');
+      getHeldSales().then(setHeldSales).catch(() => {});
     } catch (err) {
       showMsg('error', err.response?.data?.error || 'Could not resume sale');
     }
@@ -268,8 +274,47 @@ useEffect(() => {
             )}
           </div>
 
-          <button className="btn btn-outline btn-sm" style={{ margin: '10px 14px 0' }} onClick={openHeldPanel}>
-            📋 Held Sales
+          <button
+            onClick={openHeldPanel}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              margin: '12px 14px 0',
+              padding: '10px 16px',
+              borderRadius: 10,
+              border: '1.5px solid var(--pink)',
+              background: 'var(--pink-light)',
+              color: 'var(--pink-dark)',
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--pink)', e.currentTarget.style.color = '#fff')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--pink-light)', e.currentTarget.style.color = 'var(--pink-dark)')}
+          >
+            <span style={{ fontSize: 16 }}>📋</span>
+            <span>Held Sales</span>
+            {heldSales.length > 0 && (
+              <span
+                style={{
+                  background: 'var(--pink)',
+                  color: '#fff',
+                  borderRadius: 20,
+                  minWidth: 20,
+                  height: 20,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 11,
+                  fontWeight: 800,
+                  padding: '0 6px',
+                }}
+              >
+                {heldSales.length}
+              </span>
+            )}
           </button>
 
           {(successMsg || errorMsg) && (
