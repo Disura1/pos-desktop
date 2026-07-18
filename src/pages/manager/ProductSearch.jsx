@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import {
   searchProducts,
   getVariants,
+  getVariantsByBranch,
   updateProduct,
   updateVariant,
 } from "../../services/productService";
@@ -384,7 +385,9 @@ const ProductSearch = () => {
     setSelectedProduct(product);
     setLoadingVariants(true);
     try {
-      const v = await getVariants(product.product_id);
+      const v = user?.role === "Cashier"
+        ? await getVariantsByBranch(product.product_id, branchId)
+        : await getVariants(product.product_id);
       setVariants(v || []);
     } catch (err) {
       showMsg(
