@@ -263,12 +263,12 @@ const ProductSearch = () => {
       setResults((prev) =>
         prev.map((r) =>
           r.product_id === form.product_id
-            ? { ...r, name: form.name, base_price: form.base_price }
+            ? { ...r, name: form.name, base_price: form.base_price, description: form.description || "" }
             : r,
         ),
       );
       if (selectedProduct?.product_id === form.product_id) {
-        setSelectedProduct((prev) => ({ ...prev, name: form.name, base_price: form.base_price }));
+        setSelectedProduct((prev) => ({ ...prev, name: form.name, base_price: form.base_price, description: form.description || "" }));
       }
       showMsg(`"${form.name}" updated successfully.`);
       setEditProductData(null);
