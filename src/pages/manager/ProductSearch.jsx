@@ -11,10 +11,22 @@ import { fmtCurrency } from "../../utils/formatters";
 // ── SKU generator (same as CategoryManager) ───────────────────────────────
 const computeSKU = (productName, size, color, existingSkus = []) => {
   const productCode = (productName || "")
-    .trim().split(/[\s\-]+/).filter(Boolean)
-    .map((w) => w[0]?.toUpperCase() || "").join("").slice(0, 4);
-  const sizeCode  = (size  || "").trim().toUpperCase().replace(/\s+/g, "").slice(0, 3);
-  const colorCode = (color || "").trim().toUpperCase().replace(/\s+/g, "").slice(0, 3);
+    .trim()
+    .split(/[\s\-]+/)
+    .filter(Boolean)
+    .map((w) => w[0]?.toUpperCase() || "")
+    .join("")
+    .slice(0, 4);
+  const sizeCode = (size || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .slice(0, 3);
+  const colorCode = (color || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .slice(0, 3);
   const parts = [productCode, sizeCode, colorCode].filter(Boolean);
   if (!parts.length) return "";
   let base = parts.join("-");
@@ -27,7 +39,9 @@ const computeSKU = (productName, size, color, existingSkus = []) => {
 // ── Edit Product Modal — standalone component (NOT inside ProductSearch) ──
 const EditProductModal = ({ data, onClose, onSave, saving }) => {
   const [form, setForm] = useState(data);
-  useEffect(() => { setForm(data); }, [data]);
+  useEffect(() => {
+    setForm(data);
+  }, [data]);
 
   return (
     <div
@@ -64,8 +78,14 @@ const EditProductModal = ({ data, onClose, onSave, saving }) => {
           />
         </div>
         <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={() => onSave(form)} disabled={saving}>
+          <button className="btn btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => onSave(form)}
+            disabled={saving}
+          >
             {saving ? <span className="spinner" /> : "Save Product"}
           </button>
         </div>
@@ -75,9 +95,18 @@ const EditProductModal = ({ data, onClose, onSave, saving }) => {
 };
 
 // ── Edit Variant Modal — standalone component (NOT inside ProductSearch) ──
-const EditVariantModal = ({ data, productName, otherSkus, onClose, onSave, saving }) => {
+const EditVariantModal = ({
+  data,
+  productName,
+  otherSkus,
+  onClose,
+  onSave,
+  saving,
+}) => {
   const [form, setForm] = useState(data);
-  useEffect(() => { setForm(data); }, [data]);
+  useEffect(() => {
+    setForm(data);
+  }, [data]);
 
   // Auto-generate SKU from size+color whenever they change
   // Manager can also type directly in the SKU field to override
@@ -87,7 +116,7 @@ const EditVariantModal = ({ data, productName, otherSkus, onClose, onSave, savin
     if (skuManual) return;
     const generated = computeSKU(productName, form.size, form.color, otherSkus);
     if (generated) setForm((prev) => ({ ...prev, sku: generated }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.size, form.color, skuManual]);
 
   return (
@@ -120,7 +149,14 @@ const EditVariantModal = ({ data, productName, otherSkus, onClose, onSave, savin
         </div>
 
         <div className="form-group">
-          <label className="form-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <label
+            className="form-label"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <span>SKU *</span>
             <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
               {skuManual ? "Manual — editing freely" : "Auto from size & color"}
@@ -149,7 +185,14 @@ const EditVariantModal = ({ data, productName, otherSkus, onClose, onSave, savin
         </div>
 
         <div className="form-group">
-          <label className="form-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <label
+            className="form-label"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <span>Barcode *</span>
             {form.sku && form.barcode !== form.sku && (
               <button
@@ -172,20 +215,30 @@ const EditVariantModal = ({ data, productName, otherSkus, onClose, onSave, savin
         </div>
 
         <div className="form-group">
-          <label className="form-label">Variant Price (leave blank to use base price)</label>
+          <label className="form-label">
+            Variant Price (leave blank to use base price)
+          </label>
           <input
             className="form-control"
             type="number"
             step="0.01"
             value={form.variant_price || ""}
-            onChange={(e) => setForm({ ...form, variant_price: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, variant_price: e.target.value })
+            }
             placeholder="Optional override"
           />
         </div>
 
         <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={() => onSave(form)} disabled={saving}>
+          <button className="btn btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => onSave(form)}
+            disabled={saving}
+          >
             {saving ? <span className="spinner" /> : "Save Variant"}
           </button>
         </div>
@@ -200,19 +253,19 @@ const ProductSearch = () => {
   const branchId = user?.branchId || null;
   const canEdit = user?.role === "Manager";
 
-  const [query, setQuery]               = useState("");
-  const [results, setResults]           = useState([]);
-  const [searched, setSearched]         = useState(false);
-  const [searching, setSearching]       = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [searched, setSearched] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [variants, setVariants]         = useState([]);
+  const [variants, setVariants] = useState([]);
   const [loadingVariants, setLoadingVariants] = useState(false);
-  const [msg, setMsg]                   = useState({ text: "", type: "success" });
+  const [msg, setMsg] = useState({ text: "", type: "success" });
 
   // Edit modals — null = closed, object = open with that data
-  const [editProductData, setEditProductData]   = useState(null);
+  const [editProductData, setEditProductData] = useState(null);
   const [editProductSaving, setEditProductSaving] = useState(false);
-  const [editVariantData, setEditVariantData]   = useState(null);
+  const [editVariantData, setEditVariantData] = useState(null);
   const [editVariantSaving, setEditVariantSaving] = useState(false);
 
   const inputRef = useRef(null);
@@ -238,7 +291,10 @@ const ProductSearch = () => {
         showMsg(`No products found for "${q}"`, "error");
       }
     } catch (err) {
-      showMsg("Search failed: " + (err.response?.data?.error || err.message), "error");
+      showMsg(
+        "Search failed: " + (err.response?.data?.error || err.message),
+        "error",
+      );
       setSearched(true);
     } finally {
       setSearching(false);
@@ -251,7 +307,8 @@ const ProductSearch = () => {
 
   const handleSaveProduct = async (form) => {
     if (!form?.name?.trim() || !form?.base_price) {
-      showMsg("Product name and base price are required", "error"); return;
+      showMsg("Product name and base price are required", "error");
+      return;
     }
     setEditProductSaving(true);
     try {
@@ -263,12 +320,22 @@ const ProductSearch = () => {
       setResults((prev) =>
         prev.map((r) =>
           r.product_id === form.product_id
-            ? { ...r, name: form.name, base_price: form.base_price, description: form.description || "" }
+            ? {
+                ...r,
+                name: form.name,
+                base_price: form.base_price,
+                description: form.description || "",
+              }
             : r,
         ),
       );
       if (selectedProduct?.product_id === form.product_id) {
-        setSelectedProduct((prev) => ({ ...prev, name: form.name, base_price: form.base_price, description: form.description || "" }));
+        setSelectedProduct((prev) => ({
+          ...prev,
+          name: form.name,
+          base_price: form.base_price,
+          description: form.description || "",
+        }));
       }
       showMsg(`"${form.name}" updated successfully.`);
       setEditProductData(null);
@@ -281,7 +348,8 @@ const ProductSearch = () => {
 
   const handleSaveVariant = async (form) => {
     if (!form?.sku || !form?.barcode) {
-      showMsg("SKU and Barcode are required", "error"); return;
+      showMsg("SKU and Barcode are required", "error");
+      return;
     }
     setEditVariantSaving(true);
     try {
@@ -319,7 +387,11 @@ const ProductSearch = () => {
       const v = await getVariants(product.product_id);
       setVariants(v || []);
     } catch (err) {
-      showMsg("Could not load variants: " + (err.response?.data?.error || err.message), "error");
+      showMsg(
+        "Could not load variants: " +
+          (err.response?.data?.error || err.message),
+        "error",
+      );
       setVariants([]);
     } finally {
       setLoadingVariants(false);
@@ -354,7 +426,10 @@ const ProductSearch = () => {
         )}
 
         {msg.text && (
-          <div className={`alert alert-${msg.type === "error" ? "danger" : "success"}`} style={{ marginBottom: 16 }}>
+          <div
+            className={`alert alert-${msg.type === "error" ? "danger" : "success"}`}
+            style={{ marginBottom: 16 }}
+          >
             {msg.text}
           </div>
         )}
@@ -363,7 +438,10 @@ const ProductSearch = () => {
           <button
             className="btn btn-ghost btn-sm"
             style={{ marginBottom: 10 }}
-            onClick={() => { setSelectedProduct(null); setVariants([]); }}
+            onClick={() => {
+              setSelectedProduct(null);
+              setVariants([]);
+            }}
           >
             ⬅ Back to Search Results
           </button>
@@ -371,7 +449,8 @@ const ProductSearch = () => {
             👗 {selectedProduct.name}
           </h2>
           <div style={{ color: "var(--text-sub)", fontSize: 13, marginTop: 4 }}>
-            Base Price: <strong>{fmtCurrency(selectedProduct.base_price)}</strong>
+            Base Price:{" "}
+            <strong>{fmtCurrency(selectedProduct.base_price)}</strong>
           </div>
         </div>
 
@@ -400,47 +479,85 @@ const ProductSearch = () => {
                     ? v.stock.find((s) => s.branch_id === branchId)
                     : null;
                   const totalStock = Array.isArray(v.stock)
-                    ? v.stock.reduce((sum, s) => sum + (parseInt(s.stock_qty) || 0), 0)
+                    ? v.stock.reduce(
+                        (sum, s) => sum + (parseInt(s.stock_qty) || 0),
+                        0,
+                      )
                     : 0;
                   return (
                     <tr key={v.id}>
-                      <td style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 600 }}>{v.sku}</td>
-                      <td style={{ fontFamily: "monospace", fontSize: 12 }}>{v.barcode || "—"}</td>
+                      <td
+                        style={{
+                          fontFamily: "monospace",
+                          fontSize: 13,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {v.sku}
+                      </td>
+                      <td style={{ fontFamily: "monospace", fontSize: 12 }}>
+                        {v.barcode || "—"}
+                      </td>
                       <td>{v.size || "—"}</td>
                       <td>{v.color || "—"}</td>
                       <td style={{ fontWeight: 700 }}>
-                        {v.variant_price ? fmtCurrency(v.variant_price) : (
-                          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                        {v.variant_price ? (
+                          fmtCurrency(v.variant_price)
+                        ) : (
+                          <span
+                            style={{ color: "var(--text-muted)", fontSize: 12 }}
+                          >
                             Base ({fmtCurrency(selectedProduct.base_price)})
                           </span>
                         )}
                       </td>
                       <td>
                         {branchStock != null ? (
-                          <span className={`badge ${
-                            branchStock.stock_qty === 0 ? "badge-danger"
-                            : branchStock.stock_qty <= 5 ? "badge-warning"
-                            : "badge-success"
-                          }`}>
+                          <span
+                            className={`badge ${
+                              branchStock.stock_qty === 0
+                                ? "badge-danger"
+                                : branchStock.stock_qty <= 5
+                                  ? "badge-warning"
+                                  : "badge-success"
+                            }`}
+                          >
                             {branchStock.stock_qty}
                           </span>
                         ) : (
-                          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>
+                          <span
+                            style={{ color: "var(--text-muted)", fontSize: 12 }}
+                          >
+                            —
+                          </span>
                         )}
                       </td>
                       <td style={{ fontSize: 11 }}>
                         {Array.isArray(v.stock) && v.stock.length > 0 ? (
                           <div>
                             {v.stock.map((s) => (
-                              <div key={s.branch_id} style={{ marginBottom: 2 }}>
+                              <div
+                                key={s.branch_id}
+                                style={{ marginBottom: 2 }}
+                              >
                                 {s.branch_name}: <strong>{s.stock_qty}</strong>
                               </div>
                             ))}
-                            <div style={{ marginTop: 4, paddingTop: 4, borderTop: "1px solid var(--border)", fontWeight: 700, color: "var(--text-sub)" }}>
+                            <div
+                              style={{
+                                marginTop: 4,
+                                paddingTop: 4,
+                                borderTop: "1px solid var(--border)",
+                                fontWeight: 700,
+                                color: "var(--text-sub)",
+                              }}
+                            >
                               Total: {totalStock}
                             </div>
                           </div>
-                        ) : "—"}
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       {canEdit && (
                         <td>
@@ -469,7 +586,9 @@ const ProductSearch = () => {
             {variants.length === 0 && (
               <div className="empty-state">
                 <span className="empty-state-icon">⚙️</span>
-                <div className="empty-state-text">No variants found for this product</div>
+                <div className="empty-state-text">
+                  No variants found for this product
+                </div>
               </div>
             )}
           </div>
@@ -491,12 +610,17 @@ const ProductSearch = () => {
       )}
 
       {msg.text && (
-        <div className={`alert alert-${msg.type === "error" ? "danger" : "success"}`} style={{ marginBottom: 16 }}>
+        <div
+          className={`alert alert-${msg.type === "error" ? "danger" : "success"}`}
+          style={{ marginBottom: 16 }}
+        >
           {msg.text}
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 24, maxWidth: 600 }}>
+      <div
+        style={{ display: "flex", gap: 10, marginBottom: 24, maxWidth: 600 }}
+      >
         <input
           ref={inputRef}
           className="form-control"
@@ -513,12 +637,21 @@ const ProductSearch = () => {
           disabled={searching || !query.trim()}
           style={{ minWidth: 100 }}
         >
-          {searching ? <span className="spinner" style={{ width: 16, height: 16 }} /> : "🔍 Search"}
+          {searching ? (
+            <span className="spinner" style={{ width: 16, height: 16 }} />
+          ) : (
+            "🔍 Search"
+          )}
         </button>
         {searched && (
           <button
             className="btn btn-ghost"
-            onClick={() => { setQuery(""); setResults([]); setSearched(false); inputRef.current?.focus(); }}
+            onClick={() => {
+              setQuery("");
+              setResults([]);
+              setSearched(false);
+              inputRef.current?.focus();
+            }}
           >
             ✕ Clear
           </button>
@@ -528,14 +661,19 @@ const ProductSearch = () => {
       {!searched && !searching && (
         <div className="empty-state">
           <span className="empty-state-icon">🔍</span>
-          <div className="empty-state-text">Type a product name, SKU or barcode and press Search</div>
+          <div className="empty-state-text">
+            Type a product name, SKU or barcode and press Search
+          </div>
         </div>
       )}
 
       {searched && productList.length > 0 && (
         <>
-          <div style={{ fontSize: 13, color: "var(--text-sub)", marginBottom: 14 }}>
-            Found <strong>{productList.length}</strong> product(s) · <strong>{results.length}</strong> variant(s)
+          <div
+            style={{ fontSize: 13, color: "var(--text-sub)", marginBottom: 14 }}
+          >
+            Found <strong>{productList.length}</strong> product(s) ·{" "}
+            <strong>{results.length}</strong> variant(s)
           </div>
           <div className="table-wrap">
             <table>
@@ -551,23 +689,41 @@ const ProductSearch = () => {
                 {productList.map((product) => (
                   <tr key={product.product_id}>
                     <td style={{ fontWeight: 700 }}>{product.name}</td>
-                    <td style={{ fontWeight: 600 }}>{fmtCurrency(product.base_price)}</td>
+                    <td style={{ fontWeight: 600 }}>
+                      {fmtCurrency(product.base_price)}
+                    </td>
                     <td>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                      <div
+                        style={{ display: "flex", flexWrap: "wrap", gap: 5 }}
+                      >
                         {product.variants.map((v) => (
                           <span
                             key={v.variant_id}
                             style={{
-                              fontSize: 11, fontFamily: "monospace",
-                              background: "var(--card)", border: "1px solid var(--border)",
-                              borderRadius: 6, padding: "2px 8px", color: "var(--text-sub)",
+                              fontSize: 11,
+                              fontFamily: "monospace",
+                              background: "var(--card)",
+                              border: "1px solid var(--border)",
+                              borderRadius: 6,
+                              padding: "2px 8px",
+                              color: "var(--text-sub)",
                             }}
                           >
-                            {v.sku}{v.size ? ` · ${v.size}` : ""}{v.color ? ` · ${v.color}` : ""}{" — "}
-                            <span style={{
-                              fontWeight: 700,
-                              color: v.stock_qty === 0 ? "var(--danger, #e53935)" : v.stock_qty <= 5 ? "#FF9800" : "#4CAF50",
-                            }}>
+                            {v.sku}
+                            {v.size ? ` · ${v.size}` : ""}
+                            {v.color ? ` · ${v.color}` : ""}
+                            {" — "}
+                            <span
+                              style={{
+                                fontWeight: 700,
+                                color:
+                                  v.stock_qty === 0
+                                    ? "var(--danger, #e53935)"
+                                    : v.stock_qty <= 5
+                                      ? "#FF9800"
+                                      : "#4CAF50",
+                              }}
+                            >
                               {v.stock_qty} in stock
                             </span>
                           </span>
