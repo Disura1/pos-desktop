@@ -877,6 +877,7 @@ const CategoryManager = () => {
   const { user } = useAuth();
   const isManager = user?.role === "Manager";
   const isOwner = user?.role === "Owner" || user?.role === "Admin";
+  const isCashier = user?.role === "Cashier";
 
   const [allCats, setAllCats] = useState([]);
   const [items, setItems] = useState([]);
@@ -946,10 +947,12 @@ const CategoryManager = () => {
       setItems([]);
       return;
     }
-    // Both Owner and Manager see stock broken down by branch + total
-    getProductsByCategoryWithStock(id, { allBranches: "true" }).then((d) =>
-      setItems(d || []),
-    );
+    // Owner/Manager see full stock breakdown across branches;
+    // Cashier is scoped to their own branch only.
+    const params = isCashier
+      ? { branchId: user?.branchId }
+      : { allBranches: "true" };
+    getProductsByCategoryWithStock(id, params).then((d) => setItems(d || []));
   };
 
   // Load branches for owner filter
@@ -1101,7 +1104,9 @@ const CategoryManager = () => {
   const openVariantsPage = async (product) => {
     const normalized = { ...product, id: product.product_id || product.id };
     setSelectedProduct(normalized);
-    const v = await getVariants(normalized.id);
+    const v = isCashier
+      ? await getVariantsByBranch(normalized.id, user?.branchId)
+      : await getVariants(normalized.id);
     setVariants(v);
   };
 
