@@ -132,6 +132,11 @@ const POSPage = () => {
 
   useEffect(() => {
     window.electronAPI?.sendCartUpdate({ cart, subtotal, discountAmt, total });
+    // Clear the customer-facing display the moment this page is left —
+    // covers navigating to another section, logging out, or closing the app.
+    return () => {
+      window.electronAPI?.sendCartUpdate({ cart: [], subtotal: 0, discountAmt: 0, total: 0 });
+    };
   }, [cart, subtotal, discountAmt, total]);
 
   const handleCheckout = async () => {
