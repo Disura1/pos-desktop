@@ -8,8 +8,7 @@ import {
 import {
   scanProductByBarcode,
   searchProducts,
-  addProduct,
-  addVariant,
+  quickCreateProduct,
 } from "../../services/productService";
 import { getCategories } from "../../services/categoryService";
 import { fmtCurrency, fmtDateTime } from "../../utils/formatters";
@@ -347,27 +346,19 @@ const ReceiveStock = () => {
     }
     setSavingNew(true);
     try {
-      // 1. Create product
-      const product = await addProduct({
+      // Product, variant, and initial stock are all created together in one
+      // atomic backend transaction — if anything fails (e.g. duplicate SKU),
+      // nothing gets saved at all, so there's no orphaned product left behind.
+      await quickCreateProduct({
         name: newItem.productName,
         base_price: parseFloat(newItem.basePrice),
         category_id: parseInt(newItem.categoryId),
         description: "",
-      });
-
-      // 2. Create variant
-      const variant = await addVariant({
-        product_id: product.id,
         sku: newItem.sku,
         size: newItem.size || null,
         color: newItem.color || null,
         barcode: newItem.barcode,
         variant_price: null,
-      });
-
-      // 3. Receive stock for this new variant
-      await receiveStock({
-        variant_id: variant.id,
         branch_id: branchId,
         quantity: parseInt(quantity) || 0,
         note: note || "Initial stock receive",
@@ -375,24 +366,27 @@ const ReceiveStock = () => {
 
       showMsg(`✅ "${newItem.productName}" added and stock received!`);
 
-      // 4. Ask about printing labels
+      // Ask about printing labels
       const wantPrint = await confirm(
         `"${newItem.productName}" saved!\n\nPrint labels now?`,
         "Yes, Print Labels",
         "btn-primary",
       );
       if (wantPrint) {
-        printLabel([
-          {
-            productName: newItem.productName,
-            sku: newItem.sku,
-            barcode: newItem.barcode,
-            size: newItem.size,
-            color: newItem.color,
-            price: newItem.basePrice,
-            copies: parseInt(quantity) || 1,
-          },
-        ]);
+        printLabel(
+          [
+            {
+              productName: newItem.productName,
+              sku: newItem.sku,
+              barcode: newItem.barcode,
+              size: newItem.size,
+              color: newItem.color,
+              price: newItem.basePrice,
+              copies: parseInt(quantity) || 1,
+            },
+          ],
+          labelSize,
+        );
       }
 
       // Reset everything

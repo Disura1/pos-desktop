@@ -35,3 +35,5 @@ export const updateVariant = (id, data) =>
   apiClient.put(`/products/variant/${id}`, data).then((r) => r.data);
 export const deleteVariant = (id) =>
   apiClient.delete(`/products/variant/${id}`).then((r) => r.data);
+export const quickCreateProduct = (data) =>
+  apiClient.post("/products/quick-create", data).then((r) => r.data);
