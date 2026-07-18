@@ -4,6 +4,7 @@ import { getBranches } from '../../services/branchService';
 import { getSaleHistory } from '../../services/saleService';
 import { fmtCurrency, fmtDate, fmtDateTime } from '../../utils/formatters';
 import { exportToCSV } from '../../utils/csvExport';
+import { useAuth } from '../../context/AuthContext';
 
 const localDateStr = (d = new Date()) => {
   const y = d.getFullYear();
@@ -48,6 +49,9 @@ const OwnerReports = () => {
   const [exportNote, setExportNote] = useState('');
 
   useEffect(() => { getBranches().then(b => setBranches(b.filter(x => x.is_active))); }, []);
+
+  const { user } = useAuth();
+  const isManager = user?.role === 'Manager';
 
   const loadData = async () => {
     setLoading(true);
@@ -117,10 +121,16 @@ const OwnerReports = () => {
         <div style={{ display: 'flex', gap: 14, alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div>
             <label className="form-label">Branch</label>
-            <select className="form-control" style={{ minWidth: 180 }} value={branchId} onChange={e => setBranchId(e.target.value)}>
-              <option value="">All Branches</option>
-              {branches.map(b => <option key={b.id} value={b.id}>{b.branch_name}</option>)}
-            </select>
+            {isManager ? (
+              <div className="form-control" style={{ minWidth: 180, background: 'var(--bg)', color: 'var(--text-sub)' }}>
+                {user.branchName || 'Your Branch'}
+              </div>
+            ) : (
+              <select className="form-control" style={{ minWidth: 180 }} value={branchId} onChange={e => setBranchId(e.target.value)}>
+                <option value="">All Branches</option>
+                {branches.map(b => <option key={b.id} value={b.id}>{b.branch_name}</option>)}
+              </select>
+            )}
           </div>
           <div>
             <label className="form-label">From</label>
