@@ -662,6 +662,15 @@ const ReceiveStock = () => {
                 )}
               </div>
 
+              {msg.text && (
+                <div
+                  className={`alert alert-${msg.type === "error" ? "danger" : "success"}`}
+                  style={{ marginBottom: 14 }}
+                >
+                  {msg.text}
+                </div>
+              )}
+
               {/* Product name & category */}
               <div className="form-row">
                 <div className="form-group">
