@@ -285,6 +285,7 @@ const POSPage = () => {
               display: 'flex',
               alignItems: 'center',
               gap: 8,
+              width: 'fit-content',
               margin: '12px 14px 0',
               padding: '10px 16px',
               borderRadius: 10,
