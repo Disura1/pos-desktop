@@ -877,6 +877,19 @@ const ReceiveStock = () => {
                 )}
               </div>
 
+              {/* Quantity to receive */}
+              <div className="form-group">
+                <label className="form-label">Quantity to Receive *</label>
+                <input
+                  className="form-control"
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  placeholder="How many units are you receiving now"
+                />
+              </div>
+
               {/* Label copies */}
               <div className="form-group">
                 <label className="form-label">Label Copies to Print</label>
