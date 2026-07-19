@@ -1310,6 +1310,7 @@ const CategoryManager = () => {
                 <th>Size</th>
                 <th>Color</th>
                 <th>Variant Price</th>
+                {!isCashier && <th>Unit Cost</th>}
                 {/* Both owner and manager: show all branches stock */}
                 <th>Stock (All Branches)</th>
                 {/* Actions column — visible if manager or owner */}
@@ -1346,6 +1347,17 @@ const CategoryManager = () => {
                         </span>
                       )}
                     </td>
+                    {!isCashier && (
+                      <td style={{ fontSize: 11 }}>
+                        {Array.isArray(v.stock) && v.stock.length > 0
+                          ? v.stock.map((s) => (
+                              <div key={s.branch_id}>
+                                {s.branch_name}: <strong>{s.avg_cost != null ? fmtCurrency(s.avg_cost) : "—"}</strong>
+                              </div>
+                            ))
+                          : <span style={{ color: "var(--text-muted)" }}>—</span>}
+                      </td>
+                    )}
 
                     {/* Both owner and manager: show all branches stock */}
                     <td style={{ fontSize: 11 }}>

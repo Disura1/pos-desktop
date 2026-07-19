@@ -471,6 +471,7 @@ const ProductSearch = () => {
                   <th>Size</th>
                   <th>Color</th>
                   <th>Variant Price</th>
+                  <th>Unit Cost</th>
                   <th>Stock (This Branch)</th>
                   <th>All Branches</th>
                   {canEdit && <th>Actions</th>}
@@ -513,6 +514,9 @@ const ProductSearch = () => {
                             Base ({fmtCurrency(selectedProduct.base_price)})
                           </span>
                         )}
+                      </td>
+                      <td style={{ fontSize: 12 }}>
+                        {branchStock?.avg_cost != null ? fmtCurrency(branchStock.avg_cost) : <span style={{ color: "var(--text-muted)" }}>—</span>}
                       </td>
                       <td>
                         {branchStock != null ? (
