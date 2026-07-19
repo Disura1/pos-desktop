@@ -171,6 +171,8 @@ const ReceiveStock = () => {
 
   const [labelSize, setLabelSize] = useState("medium");
 
+  const [unitCost, setUnitCost] = useState("");
+
   const scanRef = useRef(null);
   const searchRef = useRef(null);
   const qtyRef = useRef(null);
@@ -314,6 +316,7 @@ const ReceiveStock = () => {
         variant_id: found.variant_id,
         branch_id: branchId,
         quantity: parseInt(quantity),
+        unit_cost: unitCost || null,
         note: note || "Stock received",
       });
       showMsg(`✅ Received ${quantity} units of ${found.sku}`);
@@ -348,6 +351,7 @@ const ReceiveStock = () => {
       setScanInput("");
       setSearchInput("");
       setQuantity("");
+      setUnitCost("");
       setNote("");
       setSearchResults([]);
       loadMovements();
@@ -399,6 +403,7 @@ const ReceiveStock = () => {
         variant_price: null,
         branch_id: branchId,
         quantity: parseInt(quantity) || 0,
+        unit_cost: unitCost || null,
         note: note || "Initial stock receive",
       });
 
@@ -434,6 +439,7 @@ const ReceiveStock = () => {
       setScanInput("");
       setSearchInput("");
       setQuantity("");
+      setUnitCost("");
       setNote("");
       loadMovements();
       if (mode === "scan") setTimeout(() => scanRef.current?.focus(), 100);
@@ -931,6 +937,22 @@ const ReceiveStock = () => {
                 />
               </div>
 
+              <div className="form-group">
+                <label className="form-label">Unit Cost (optional)</label>
+                <input
+                  className="form-control"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={unitCost}
+                  onChange={(e) => setUnitCost(e.target.value)}
+                  placeholder="What did you pay per unit for this batch?"
+                />
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                  Used to calculate profit reports. Leave blank if unknown.
+                </div>
+              </div>
+
               {/* Label copies */}
               <div className="form-group">
                 <label className="form-label">Label Copies to Print</label>
@@ -1078,6 +1100,22 @@ const ReceiveStock = () => {
                       units
                     </div>
                   )}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Unit Cost (optional)</label>
+                  <input
+                    className="form-control"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={unitCost}
+                    onChange={(e) => setUnitCost(e.target.value)}
+                    placeholder="What did you pay per unit for this batch?"
+                  />
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                    Used to calculate profit reports. Leave blank if unknown.
+                  </div>
                 </div>
 
                 <div className="form-group">
