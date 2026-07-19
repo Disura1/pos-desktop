@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { lookupSaleForReturn, processReturn, getReturnHistory } from "../../services/returnService";
+import { lookupSaleForReturn, searchSalesForReturn, processReturn, getReturnHistory } from "../../services/returnService";
 import { fmtCurrency, fmtDateTime } from "../../utils/formatters";
 import { printReceipt } from "../../utils/printUtils";
 
 const ReturnsPage = () => {
   const { user } = useAuth();
   const [receiptNumber, setReceiptNumber] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
   const [sale, setSale] = useState(null);
   const [items, setItems] = useState([]);
   const [returnQty, setReturnQty] = useState({});
@@ -27,13 +29,36 @@ const ReturnsPage = () => {
     setTimeout(() => setMsg({ text: "", type: "success" }), 5000);
   };
 
-  const handleLookup = async () => {
-    if (!receiptNumber.trim()) return;
-    setLooking(true);
+  const handleSearch = async () => {
+    if (!receiptNumber.trim() || receiptNumber.trim().length < 2) {
+      showMsg("danger", "Enter at least 2 characters to search");
+      return;
+    }
+    setSearching(true);
     setSale(null);
     setItems([]);
+    setSearchResults([]);
     try {
-      const data = await lookupSaleForReturn(receiptNumber.trim());
+      const results = await searchSalesForReturn(receiptNumber.trim());
+      if (results.length === 0) {
+        showMsg("danger", "No matching sale found");
+      } else if (results.length === 1) {
+        selectSale(results[0].receipt_number);
+      } else {
+        setSearchResults(results);
+      }
+    } catch (err) {
+      showMsg("danger", err.response?.data?.error || "Search failed");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const selectSale = async (exactReceiptNumber) => {
+    setLooking(true);
+    setSearchResults([]);
+    try {
+      const data = await lookupSaleForReturn(exactReceiptNumber);
       setSale(data.sale);
       setItems(data.items);
       setRefundMethod(data.sale.payment_method || "cash");
@@ -109,6 +134,7 @@ const ReturnsPage = () => {
       setSale(null);
       setItems([]);
       setReceiptNumber("");
+      setSearchResults([]);
       setReason("");
       loadHistory();
     } catch (err) {
@@ -129,15 +155,44 @@ const ReturnsPage = () => {
         <div style={{ display: "flex", gap: 10 }}>
           <input
             className="form-control"
-            placeholder="Enter receipt number (e.g. TGM-000123)"
+            placeholder="Type any part of the receipt number — e.g. 30, 000030, or TGMN-000030"
             value={receiptNumber}
             onChange={(e) => setReceiptNumber(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleLookup()}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           />
-          <button className="btn btn-primary" onClick={handleLookup} disabled={looking}>
-            {looking ? <span className="spinner" /> : "🔍 Look Up"}
+          <button className="btn btn-primary" onClick={handleSearch} disabled={searching || looking}>
+            {searching || looking ? <span className="spinner" /> : "🔍 Search"}
           </button>
         </div>
+
+        {searchResults.length > 0 && (
+          <div style={{ marginTop: 14 }}>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
+              {searchResults.length} matching sale(s) — select one:
+            </div>
+            {searchResults.map((r) => (
+              <div
+                key={r.id}
+                onClick={() => selectSale(r.receipt_number)}
+                style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "10px 12px", borderRadius: 8, border: "1px solid var(--border)",
+                  marginBottom: 6, cursor: "pointer",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--pink-light)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                <div>
+                  <div style={{ fontWeight: 700, fontFamily: "monospace" }}>{r.receipt_number}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                    {fmtDateTime(r.sale_date)} · {r.branch_name} · {r.cashier_name}
+                  </div>
+                </div>
+                <div style={{ fontWeight: 700 }}>{fmtCurrency(r.total_amount)}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {sale && (
