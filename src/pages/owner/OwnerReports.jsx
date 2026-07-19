@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { getDailySummary, getRevenueByPeriod, getTopProducts, getDateRangeReport } from '../../services/reportService';
+import {
+  getDailySummary, getRevenueByPeriod, getTopProducts, getDateRangeReport,
+  getProfitSummary, getProfitByProduct, getProfitByCategory, getProfitByBranch, getProfitTrend,
+} from '../../services/reportService';
 import { getBranches } from '../../services/branchService';
 import { getSaleHistory } from '../../services/saleService';
 import { fmtCurrency, fmtDate, fmtDateTime } from '../../utils/formatters';
@@ -47,6 +50,11 @@ const OwnerReports = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
   const [exportNote, setExportNote] = useState('');
+  const [profitSummary, setProfitSummary] = useState(null);
+  const [profitTrend, setProfitTrend] = useState([]);
+  const [profitByProduct, setProfitByProduct] = useState([]);
+  const [profitByCategory, setProfitByCategory] = useState([]);
+  const [profitByBranch, setProfitByBranch] = useState([]);
 
   useEffect(() => { getBranches().then(b => setBranches(b.filter(x => x.is_active))); }, []);
 
@@ -57,16 +65,28 @@ const OwnerReports = () => {
     setLoading(true);
     try {
       const days = Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000) + 1;
-      const [s, c, tp, sl] = await Promise.all([
+      const [s, c, tp, sl, ps, pt, pbp, pbc] = await Promise.all([
         getDateRangeReport({ startDate, endDate, branchId: branchId || null }),
         getRevenueByPeriod({ days, branchId: branchId || null }),
         getTopProducts({ days, branchId: branchId || null, limit: 10 }),
         getSaleHistory({ branchId: branchId || null, limit: 200, date: null }),
+        getProfitSummary({ startDate, endDate, branchId: branchId || null }),
+        getProfitTrend({ days, branchId: branchId || null }),
+        getProfitByProduct({ days, branchId: branchId || null, limit: 50 }),
+        getProfitByCategory({ days, branchId: branchId || null }),
       ]);
       setSummary(s.summary);
       setChartData(c);
       setTopProducts(tp);
       setSales(sl);
+      setProfitSummary(ps);
+      setProfitTrend(pt);
+      setProfitByProduct(pbp);
+      setProfitByCategory(pbc);
+
+      if (!isManager) {
+        setProfitByBranch(await getProfitByBranch({ days }));
+      }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -107,9 +127,38 @@ const OwnerReports = () => {
     { label: 'Payment', value: 'payment_method' },
   ], sales);
 
+  const exportProfitTrend = () => runExport('profit-trend.csv', [
+    { label: 'Date', value: (r) => fmtDate(r.date) },
+    { label: 'Revenue', value: 'revenue' },
+    { label: 'Cost (COGS)', value: 'cogs' },
+    { label: 'Gross Profit', value: 'profit' },
+  ], profitTrend);
+
+  const exportProfitByProduct = () => runExport('profit-by-product.csv', [
+    { label: 'Product', value: 'product_name' },
+    { label: 'SKU', value: 'sku' },
+    { label: 'Size', value: 'size' },
+    { label: 'Color', value: 'color' },
+    { label: 'Sold', value: 'total_sold' },
+    { label: 'Revenue', value: 'total_revenue' },
+    { label: 'Cost', value: 'total_cogs' },
+    { label: 'Gross Profit', value: 'gross_profit' },
+    { label: 'Margin %', value: (r) => parseFloat(r.margin_pct).toFixed(1) },
+  ], profitByProduct);
+
+  const exportProfitByCategory = () => runExport('profit-by-category.csv', [
+    { label: 'Category', value: 'category_name' },
+    { label: 'Sold', value: 'total_sold' },
+    { label: 'Revenue', value: 'total_revenue' },
+    { label: 'Cost', value: 'total_cogs' },
+    { label: 'Gross Profit', value: 'gross_profit' },
+    { label: 'Margin %', value: (r) => parseFloat(r.margin_pct).toFixed(1) },
+  ], profitByCategory);
+
   const tabs = [
     { id: 'summary', label: 'Summary' },
     { id: 'chart', label: 'Revenue Chart' },
+    { id: 'profit', label: '💰 Profit' },
     { id: 'products', label: 'Top Products' },
     { id: 'sales', label: 'Sales List' },
   ];
@@ -223,6 +272,146 @@ const OwnerReports = () => {
             </table>
           </div>
         </div>
+      )}
+
+      {/* Profit Tab */}
+      {activeTab === 'profit' && (
+        <>
+          {profitSummary && (
+            <>
+              {profitSummary.items_missing_cost > 0 && (
+                <div className="alert alert-danger" style={{ marginBottom: 16 }}>
+                  ⚠️ {profitSummary.items_missing_cost} of {profitSummary.total_items} items sold in this
+                  period have no recorded cost (received before cost tracking was set up, or received
+                  without entering a cost). Profit figures below only reflect items with a known cost.
+                </div>
+              )}
+              <div className="kpi-grid" style={{ marginBottom: 20 }}>
+                <div className="kpi-card" style={{ '--kpi-color': 'var(--pink)' }}>
+                  <span className="kpi-icon">💰</span>
+                  <div className="kpi-value">{fmtCurrency(profitSummary.total_revenue)}</div>
+                  <div className="kpi-label">Total Revenue</div>
+                </div>
+                <div className="kpi-card" style={{ '--kpi-color': '#FF9800' }}>
+                  <span className="kpi-icon">📦</span>
+                  <div className="kpi-value">{fmtCurrency(profitSummary.total_cogs)}</div>
+                  <div className="kpi-label">Cost of Goods Sold</div>
+                </div>
+                <div className="kpi-card" style={{ '--kpi-color': '#4CAF50' }}>
+                  <span className="kpi-icon">📈</span>
+                  <div className="kpi-value">{fmtCurrency(profitSummary.gross_profit)}</div>
+                  <div className="kpi-label">Gross Profit</div>
+                </div>
+                <div className="kpi-card" style={{ '--kpi-color': '#2196F3' }}>
+                  <span className="kpi-icon">%</span>
+                  <div className="kpi-value">{parseFloat(profitSummary.margin_pct).toFixed(1)}%</div>
+                  <div className="kpi-label">Margin</div>
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="card-title">Profit Trend</div>
+              <button className="btn btn-outline btn-sm" onClick={exportProfitTrend}>⬇ Export CSV</button>
+            </div>
+            <MiniBarChart data={profitTrend} valueKey="profit" />
+          </div>
+
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="card-title">Profit by Product</div>
+              <button className="btn btn-outline btn-sm" onClick={exportProfitByProduct}>⬇ Export CSV</button>
+            </div>
+            <div className="table-wrap">
+              <table>
+                <thead><tr><th>Product</th><th>SKU</th><th>Sold</th><th>Revenue</th><th>Cost</th><th>Profit</th><th>Margin</th></tr></thead>
+                <tbody>
+                  {profitByProduct.map((p, i) => (
+                    <tr key={i}>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{p.product_name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.size} · {p.color}</div>
+                      </td>
+                      <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{p.sku}</td>
+                      <td>{p.total_sold}</td>
+                      <td>{fmtCurrency(p.total_revenue)}</td>
+                      <td style={{ color: 'var(--text-muted)' }}>{fmtCurrency(p.total_cogs)}</td>
+                      <td style={{ fontWeight: 700, color: p.gross_profit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                        {fmtCurrency(p.gross_profit)}
+                      </td>
+                      <td>
+                        <span className={`badge ${p.margin_pct >= 30 ? 'badge-success' : p.margin_pct >= 10 ? 'badge-info' : 'badge-danger'}`}>
+                          {parseFloat(p.margin_pct).toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="card-title">Profit by Category</div>
+              <button className="btn btn-outline btn-sm" onClick={exportProfitByCategory}>⬇ Export CSV</button>
+            </div>
+            <div className="table-wrap">
+              <table>
+                <thead><tr><th>Category</th><th>Sold</th><th>Revenue</th><th>Cost</th><th>Profit</th><th>Margin</th></tr></thead>
+                <tbody>
+                  {profitByCategory.map((c, i) => (
+                    <tr key={i}>
+                      <td style={{ fontWeight: 600 }}>{c.category_name}</td>
+                      <td>{c.total_sold}</td>
+                      <td>{fmtCurrency(c.total_revenue)}</td>
+                      <td style={{ color: 'var(--text-muted)' }}>{fmtCurrency(c.total_cogs)}</td>
+                      <td style={{ fontWeight: 700, color: c.gross_profit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                        {fmtCurrency(c.gross_profit)}
+                      </td>
+                      <td>
+                        <span className={`badge ${c.margin_pct >= 30 ? 'badge-success' : c.margin_pct >= 10 ? 'badge-info' : 'badge-danger'}`}>
+                          {parseFloat(c.margin_pct).toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {!isManager && (
+            <div className="card">
+              <div className="card-header"><div className="card-title">Profit by Branch</div></div>
+              <div className="table-wrap">
+                <table>
+                  <thead><tr><th>Branch</th><th>Transactions</th><th>Revenue</th><th>Cost</th><th>Profit</th><th>Margin</th></tr></thead>
+                  <tbody>
+                    {profitByBranch.map((b) => (
+                      <tr key={b.branch_id}>
+                        <td style={{ fontWeight: 600 }}>{b.branch_name}</td>
+                        <td>{b.total_transactions}</td>
+                        <td>{fmtCurrency(b.total_revenue)}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{fmtCurrency(b.total_cogs)}</td>
+                        <td style={{ fontWeight: 700, color: b.gross_profit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                          {fmtCurrency(b.gross_profit)}
+                        </td>
+                        <td>
+                          <span className={`badge ${b.margin_pct >= 30 ? 'badge-success' : b.margin_pct >= 10 ? 'badge-info' : 'badge-danger'}`}>
+                            {parseFloat(b.margin_pct).toFixed(1)}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Top Products Tab */}
