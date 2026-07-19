@@ -18,9 +18,19 @@ const ReturnsPage = () => {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState({ text: "", type: "success" });
   const [history, setHistory] = useState([]);
+  const [historyBranchId, setHistoryBranchId] = useState("");
+  const [historyStart, setHistoryStart] = useState("");
+  const [historyEnd, setHistoryEnd] = useState("");
+  const [historySearch, setHistorySearch] = useState("");
 
   const loadHistory = () => {
-    getReturnHistory({ limit: 20 }).then(setHistory).catch(() => {});
+    getReturnHistory({
+      limit: 200,
+      branchId: historyBranchId || undefined,
+      startDate: historyStart || undefined,
+      endDate: historyEnd || undefined,
+      search: historySearch || undefined,
+    }).then(setHistory).catch(() => {});
   };
   useEffect(() => { loadHistory(); }, []);
 
@@ -107,7 +117,7 @@ const ReturnsPage = () => {
       // Print a refund slip using the same receipt template, marked as a return
       await printReceipt({
         sale: {
-          receipt_number: `RETURN-${result.returnId}`,
+          receipt_number: result.returnNumber,
           branch_address: sale.branch_address,
           branch_phone: sale.branch_phone,
           sale_date: result.createdAt,
@@ -266,12 +276,36 @@ const ReturnsPage = () => {
       )}
 
       <div className="card">
-        <div className="card-title" style={{ marginBottom: 10 }}>Recent Returns</div>
+        <div className="card-title" style={{ marginBottom: 10 }}>All Returns</div>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 14 }}>
+          <div style={{ flex: "1 1 200px" }}>
+            <label className="form-label">Search (return # or original receipt)</label>
+            <input className="form-control" value={historySearch} onChange={(e) => setHistorySearch(e.target.value)} placeholder="e.g. RE-000001 or TGMN-000030" />
+          </div>
+          <div>
+            <label className="form-label">From</label>
+            <input className="form-control" type="date" value={historyStart} onChange={(e) => setHistoryStart(e.target.value)} />
+          </div>
+          <div>
+            <label className="form-label">To</label>
+            <input className="form-control" type="date" value={historyEnd} onChange={(e) => setHistoryEnd(e.target.value)} />
+          </div>
+          <button className="btn btn-primary btn-sm" onClick={loadHistory}>Filter</button>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => { setHistorySearch(""); setHistoryStart(""); setHistoryEnd(""); setTimeout(loadHistory, 0); }}
+          >
+            ✕ Clear
+          </button>
+        </div>
+
         <table>
-          <thead><tr><th>Date</th><th>Original Sale</th><th>Items</th><th>Refund</th><th>Reason</th><th>By</th></tr></thead>
+          <thead><tr><th>Return #</th><th>Date</th><th>Original Sale</th><th>Items</th><th>Refund</th><th>Reason</th><th>By</th></tr></thead>
           <tbody>
             {history.map((r) => (
               <tr key={r.id}>
+                <td style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700 }}>{r.return_number || `RE-${r.id}`}</td>
                 <td style={{ fontSize: 12 }}>{fmtDateTime(r.created_at)}</td>
                 <td style={{ fontFamily: "monospace", fontSize: 12 }}>{r.original_receipt_number}</td>
                 <td>{r.item_count}</td>
@@ -280,6 +314,9 @@ const ReturnsPage = () => {
                 <td style={{ fontSize: 12 }}>{r.processed_by_name}</td>
               </tr>
             ))}
+            {history.length === 0 && (
+              <tr><td colSpan={7} style={{ textAlign: "center", color: "var(--text-muted)", padding: 20 }}>No returns found</td></tr>
+            )}
           </tbody>
         </table>
       </div>
