@@ -24,6 +24,7 @@ import LabelPrinter from "./pages/manager/LabelPrinter";
 // Cashier pages
 import POSPage from "./pages/cashier/POSPage";
 import SalesHistory from "./pages/cashier/SalesHistory";
+import ReturnsPage from "./pages/cashier/ReturnsPage";
 
 // Shared pages
 import CategoryManager from "./pages/shared/CategoryManager";
@@ -88,6 +89,7 @@ const AppInner = () => {
       case "cashier-products": return <CategoryManager />;
       case "cashier-search":   return <ProductSearch />;
       case "categories":       return <CategoryManager />;
+      case "cashier-returns":  return <ReturnsPage />;
       default:
         return (
           <div className="page-content">
