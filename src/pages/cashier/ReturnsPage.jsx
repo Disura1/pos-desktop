@@ -294,7 +294,12 @@ const ReturnsPage = () => {
           <button className="btn btn-primary btn-sm" onClick={loadHistory}>Filter</button>
           <button
             className="btn btn-ghost btn-sm"
-            onClick={() => { setHistorySearch(""); setHistoryStart(""); setHistoryEnd(""); setTimeout(loadHistory, 0); }}
+            onClick={() => {
+              setHistorySearch("");
+              setHistoryStart("");
+              setHistoryEnd("");
+              getReturnHistory({ limit: 200 }).then(setHistory).catch(() => {});
+            }}
           >
             ✕ Clear
           </button>
