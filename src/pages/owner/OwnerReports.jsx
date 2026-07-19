@@ -69,7 +69,7 @@ const OwnerReports = () => {
         getDateRangeReport({ startDate, endDate, branchId: branchId || null }),
         getRevenueByPeriod({ days, branchId: branchId || null }),
         getTopProducts({ days, branchId: branchId || null, limit: 10 }),
-        getSaleHistory({ branchId: branchId || null, limit: 200, date: null }),
+        getSaleHistory({ branchId: branchId || null, limit: 200, startDate, endDate }),
         getProfitSummary({ startDate, endDate, branchId: branchId || null }),
         getProfitTrend({ days, branchId: branchId || null }),
         getProfitByProduct({ days, branchId: branchId || null, limit: 50 }),
