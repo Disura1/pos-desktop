@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
 
 module.exports = {
@@ -36,6 +37,11 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: './src/web.html',
       filename: 'index.html',
+    }),
+    new CopyWebpackPlugin({
+      patterns: [
+        { from: './src/assets/logo.jpg', to: 'favicon.jpg' },
+      ],
     }),
     new webpack.DefinePlugin({
       // Web build always calls relative /api (same origin as backend)
