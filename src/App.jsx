@@ -46,16 +46,29 @@ const AppInner = () => {
   const [view, setView] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  // On web, treat ≤768px as mobile (toggleable sidebar) and >768px as desktop (fixed sidebar)
+  const [isMobile, setIsMobile] = useState(() => IS_WEB && window.innerWidth <= 768);
+  useEffect(() => {
+    if (!IS_WEB) return;
+    const mq = window.matchMedia('(max-width: 768px)');
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  // Whether sidebar should auto-close on nav click and show a toggle button
+  // True for: mobile web (all roles), desktop Electron cashier
+  const mobileBehavior = IS_WEB ? isMobile : user?.role === "Cashier";
+
   useEffect(() => {
     if (user) {
       setView(DEFAULT_VIEW[user.role] || "pos");
-      // Web: sidebar starts closed so it doesn't cover the full screen on mobile
-      // Desktop: open for Owner/Manager, closed for Cashier
-      setSidebarOpen(IS_WEB ? false : user.role !== "Cashier");
+      // Mobile web: start closed. Desktop (Electron or wide web): open for Owner/Manager
+      setSidebarOpen(mobileBehavior ? false : user.role !== "Cashier");
     } else {
       setView(null);
     }
-  }, [user?.id, user?.role]);
+  }, [user?.id, user?.role, mobileBehavior]);
 
   if (loading)
     return (
@@ -134,17 +147,15 @@ const AppInner = () => {
       {sidebarOpen && (
         <Sidebar
           currentView={view}
-          setView={(v) => { setView(v); if (IS_WEB || user.role === "Cashier") setSidebarOpen(false); }}
-          onClose={IS_WEB ? () => setSidebarOpen(false) : null}
+          setView={(v) => { setView(v); if (mobileBehavior) setSidebarOpen(false); }}
+          onClose={mobileBehavior ? () => setSidebarOpen(false) : null}
         />
       )}
       <div className="main-area" style={{ position: "relative" }}>
         <TopBar
           currentView={view}
           sidebarToggle={
-            // Desktop: only Cashier gets a toggle (Owner/Manager sidebar is always open)
-            // Web/mobile: all roles get a toggle so the sidebar can be hidden on small screens
-            (IS_WEB || user.role === "Cashier")
+            mobileBehavior
               ? { isOpen: sidebarOpen, onToggle: () => setSidebarOpen((o) => !o) }
               : null
           }
