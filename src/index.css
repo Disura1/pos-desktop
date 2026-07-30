@@ -213,3 +213,99 @@ table tbody tr:hover td { background: #FAFAFA; }
 .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--pink); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (max-width: 1300px) { .kpi-grid { grid-template-columns: repeat(2,1fr); } .grid-4 { grid-template-columns: repeat(2,1fr); } }
+
+/* ── Report filters: desktop base layout ── */
+.report-filters { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
+.rf-date-row   { display: flex; gap: 14px; align-items: flex-end; }
+.rf-action-row { display: flex; gap: 8px; align-items: flex-end; }
+.rf-shortcuts  { display: flex; gap: 6px; align-items: flex-end; }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE / WEB RESPONSIVE  (≤ 768px)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── #4 Sidebar: footer always pinned at bottom (iOS Safari compatible) ── */
+  .sidebar {
+    height: 100vh;
+    height: -webkit-fill-available; /* iOS Safari 100vh bug fix */
+    height: 100dvh; /* modern browsers — accounts for browser chrome */
+    position: fixed;
+    z-index: 200;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important; /* nav scrolls independently; footer never hides */
+  }
+  .sidebar-nav {
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sidebar-footer {
+    flex-shrink: 0 !important;
+    position: relative !important; /* clear any sticky — flex handles pinning */
+  }
+
+  /* ── Page & layout ── */
+  .page-content { padding: 14px; }
+  .topbar { padding: 0 14px; }
+
+  /* ── #5 / #6 Dashboard cards: 1 per row ── */
+  .grid-2 { grid-template-columns: 1fr; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+
+  /* Fixed-height scrollable dashboard cards (Branch Performance, Top Products, Low Stock) */
+  .dashboard-scroll-card { max-height: 260px; overflow-y: auto; }
+
+  /* ── #7 Branch page: 2 cards per row ── */
+  .branch-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* ── #9 Discount page: 2 cards per row ── */
+  .discount-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* ── #10 / #11 Receive Stock & Transfer Stock: 1 col ── */
+  .receive-stock-grid { grid-template-columns: 1fr !important; }
+  .grid-2.transfer-grid { grid-template-columns: 1fr; }
+
+  /* ── Reports filters: 3-row mobile layout ── */
+  /* Row 1: Branch — full width */
+  .report-filters { gap: 10px; }
+  .rf-branch { width: 100%; }
+  .rf-branch .form-control { width: 100%; min-width: 0; }
+  /* Row 2: From + To side by side — margin-right instead of gap for iOS Safari compat */
+  .rf-date-row { width: 100%; gap: 0; }
+  .rf-from { flex: 1 1 0; min-width: 0; margin-right: 10px; }
+  .rf-to   { flex: 1 1 0; min-width: 0; }
+  .rf-from .form-control, .rf-to .form-control { width: 100%; }
+  /* Row 3: Shortcuts + Generate button */
+  .rf-action-row { width: 100%; gap: 8px; }
+  .rf-shortcuts { flex: 1; }
+  .rf-generate  { flex-shrink: 0; }
+
+  /* ── #13 Reports tabs: horizontal scroll, no wrap ── */
+  .report-tabs { overflow-x: auto; flex-wrap: nowrap !important; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+  .report-tabs button { white-space: nowrap; flex-shrink: 0; padding: 10px 14px !important; font-size: 12px !important; }
+
+  /* ── #14 CategoryManager: path on row 1, buttons on row 2 ── */
+  .cat-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+  .cat-header-buttons { align-self: stretch; display: flex; gap: 8px; }
+  .cat-header-buttons .btn { flex: 1; justify-content: center; }
+
+  /* ── #15 Login card: horizontal margin ── */
+  .login-page { padding: 16px; }
+  .login-card { width: 100%; max-width: 400px; padding: 32px 22px; }
+
+  /* ── #8 User page: New User button inline with search on mobile ── */
+  .user-filter-row { flex-wrap: wrap; }
+  .user-filter-row .btn-primary { margin-left: 0 !important; order: -1; flex-shrink: 0; }
+  .user-filter-row input.form-control { flex: 1 1 160px; min-width: 0; }
+
+  /* ── General table: allow horizontal scroll ── */
+  .table-wrap { overflow-x: auto; }
+  .card { overflow-x: auto; }
+  table { min-width: 480px; }
+
+  /* ── Form rows: stack on mobile ── */
+  .form-row { grid-template-columns: 1fr; }
+}

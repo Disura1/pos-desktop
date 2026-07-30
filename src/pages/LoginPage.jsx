@@ -5,9 +5,10 @@ import logo from '../assets/logo.jpg';
 
 const LoginPage = () => {
   const { login: authLogin } = useAuth();
-  const [creds, setCreds]     = useState({ username: '', password: '' });
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
+  const [creds, setCreds]       = useState({ username: '', password: '' });
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
+  const [showPw, setShowPw]     = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -65,14 +66,29 @@ const LoginPage = () => {
           </div>
           <div className="form-group">
             <label className="form-label">Password</label>
-            <input
-              className="form-control"
-              type="password"
-              placeholder="Enter password"
-              value={creds.password}
-              onChange={e => setCreds({ ...creds, password: e.target.value })}
-              required
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                className="form-control"
+                type={showPw ? 'text' : 'password'}
+                placeholder="Enter password"
+                value={creds.password}
+                onChange={e => setCreds({ ...creds, password: e.target.value })}
+                style={{ paddingRight: 44 }}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw(v => !v)}
+                style={{
+                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 16, color: 'var(--text-muted)', padding: '2px 4px',
+                }}
+                title={showPw ? 'Hide password' : 'Show password'}
+              >
+                {showPw ? '🙈' : '👁️'}
+              </button>
+            </div>
           </div>
           <button
             className="btn btn-primary btn-lg btn-block"

@@ -145,8 +145,10 @@ const ReceiveStock = () => {
   const { user } = useAuth();
   const branchId = user?.branchId;
 
+  const IS_WEB = process.env.IS_WEB === 'true';
+
   // ── state ──
-  const [mode, setMode] = useState("scan"); // "scan" | "search"
+  const [mode, setMode] = useState(IS_WEB ? "search" : "scan"); // web has no barcode scanner
   const [scanInput, setScanInput] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -478,8 +480,8 @@ const ReceiveStock = () => {
         </div>
       )}
 
-      {/* ── Mode Toggle ── */}
-      <div
+      {/* ── Mode Toggle — desktop only (web has no barcode scanner) ── */}
+      {!IS_WEB && <div
         style={{
           display: "flex",
           gap: 0,
@@ -522,9 +524,9 @@ const ReceiveStock = () => {
             {m.label}
           </button>
         ))}
-      </div>
+      </div>}
 
-      <div className="grid-2" style={{ gap: 20, alignItems: "flex-start" }}>
+      <div className="grid-2 receive-stock-grid" style={{ gap: 20, alignItems: "flex-start" }}>
         {/* ── LEFT: Input panel ── */}
         <div>
           {/* Scan mode */}

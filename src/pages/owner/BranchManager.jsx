@@ -142,7 +142,7 @@ const BranchManager = () => {
       )}
 
       {/* Branch Cards */}
-      <div className="grid-3" style={{ gap: 16 }}>
+      <div className="grid-3 branch-grid" style={{ gap: 16 }}>
         {loading ? (
           <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 40 }}>
             <span className="spinner" style={{ width: 32, height: 32 }} />

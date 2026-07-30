@@ -172,7 +172,7 @@ const OwnerDashboard = () => {
       </div>
 
       <div className="grid-2" style={{ gap: 20, marginBottom: 20 }}>
-        <div className="card">
+        <div className="card" style={{ minHeight: 0 }}>
           <div className="card-header">
             <div>
               <div className="card-title">Revenue (Last 7 Days)</div>
@@ -196,7 +196,7 @@ const OwnerDashboard = () => {
               <div className="empty-state-text">No branch data</div>
             </div>
           ) : (
-            branches.map((b) => (
+            <div className="dashboard-scroll-card">{branches.map((b) => (
               <div
                 key={b.id}
                 style={{
@@ -230,7 +230,7 @@ const OwnerDashboard = () => {
                   </div>
                 </div>
               </div>
-            ))
+            ))}</div>
           )}
         </div>
       </div>
@@ -246,7 +246,7 @@ const OwnerDashboard = () => {
               <div className="empty-state-text">No sales data yet</div>
             </div>
           ) : (
-            <table>
+            <div className="dashboard-scroll-card"><table>
               <thead>
                 <tr>
                   <th>Product</th>
@@ -275,7 +275,7 @@ const OwnerDashboard = () => {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
         </div>
 

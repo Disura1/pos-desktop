@@ -39,11 +39,15 @@ const NAV_MAP = {
   Cashier: CASHIER_NAV,
 };
 
-const Sidebar = ({ currentView, setView }) => {
+const IS_WEB = process.env.IS_WEB === 'true';
+
+const Sidebar = ({ currentView, setView, onClose }) => {
   const { user, logout } = useAuth();
   if (!user) return null;
 
-  const navItems = NAV_MAP[user.role] || CASHIER_NAV;
+  let navItems = NAV_MAP[user.role] || CASHIER_NAV;
+  // Label printing requires a physical desktop printer — hide it on web
+  if (IS_WEB) navItems = navItems.filter(item => item.view !== 'label-printer');
 
   return (
     <aside className="sidebar">
@@ -64,6 +68,27 @@ const Sidebar = ({ currentView, setView }) => {
             <div className="sidebar-brand-name">Teen Girl</div>
             <div className="sidebar-brand-sub">POS System</div>
           </div>
+          {/* Close button — web/mobile only */}
+          {onClose && (
+            <button
+              onClick={onClose}
+              style={{
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 6,
+                color: "rgba(255,255,255,0.6)",
+                fontSize: 16,
+                lineHeight: 1,
+                padding: "4px 9px",
+                cursor: "pointer",
+                flexShrink: 0,
+                marginLeft: "auto",
+              }}
+              title="Close menu"
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 

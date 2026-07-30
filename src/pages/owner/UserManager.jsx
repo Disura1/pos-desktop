@@ -152,6 +152,7 @@ const UserManager = () => {
   return (
     <div className="page-content">
       <div
+        className="user-filter-row"
         style={{
           display: "flex",
           flexWrap: "wrap",

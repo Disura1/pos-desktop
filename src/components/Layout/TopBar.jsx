@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fmtDateTime } from '../../utils/formatters';
+import logo from '../../assets/logo.jpg';
+
+const IS_WEB = process.env.IS_WEB === 'true';
 
 const PAGE_TITLES = {
   'owner-dashboard':   { title: 'Dashboard',        subtitle: 'Overview of all branches' },
@@ -34,42 +37,60 @@ const TopBar = ({ currentView, sidebarToggle }) => {
   }, []);
 
   const page = PAGE_TITLES[currentView] || { title: 'Teen Girl POS', subtitle: '' };
+  const isManager = user?.role === 'Manager';
 
   const handleFullscreen = () => window.electronAPI?.toggleFullscreen();
+
+  const clockStr = time.toLocaleTimeString('en-LK', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   return (
     <header className="topbar">
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        {/* Sidebar toggle — cashier only, rendered inline with title */}
+        {/* Sidebar toggle button (web: all roles; desktop: cashier only) */}
         {sidebarToggle && (
           <button
             onClick={sidebarToggle.onToggle}
             title={sidebarToggle.isOpen ? 'Hide menu' : 'Show menu'}
             style={{
-              background: 'var(--card)',
-              border: '1.5px solid var(--border)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '5px 10px',
-              cursor: 'pointer',
-              fontSize: 16,
-              color: 'var(--text)',
-              lineHeight: 1,
-              flexShrink: 0,
+              background: 'var(--card)', border: '1.5px solid var(--border)',
+              borderRadius: 'var(--radius-sm)', padding: '5px 10px',
+              cursor: 'pointer', fontSize: 16, color: 'var(--text)', lineHeight: 1, flexShrink: 0,
             }}
           >
             {sidebarToggle.isOpen ? '✕' : '☰'}
           </button>
         )}
+
+        {/* Logo — shown in topbar only on web/mobile */}
+        {IS_WEB && (
+          <img src={logo} alt="Teen Girl" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'contain', flexShrink: 0 }} />
+        )}
+
         <div>
-          <div className="topbar-title">{page.title}</div>
-          {page.subtitle && <div className="topbar-subtitle">{page.subtitle}</div>}
+          {/* Manager mobile: show branch name instead of page title */}
+          {IS_WEB && isManager && user?.branchName ? (
+            <>
+              <div className="topbar-title">{user.branchName}</div>
+              <div className="topbar-subtitle">{page.title}</div>
+            </>
+          ) : (
+            <>
+              <div className="topbar-title">{page.title}</div>
+              {page.subtitle && <div className="topbar-subtitle">{page.subtitle}</div>}
+            </>
+          )}
         </div>
       </div>
+
       <div className="topbar-right">
-        <span className="topbar-clock">
-          🕐 {time.toLocaleTimeString('en-LK', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-        </span>
-        <button className="btn btn-ghost btn-sm" onClick={handleFullscreen} title="Toggle fullscreen">⛶</button>
+        {/* Clock: desktop only */}
+        {!IS_WEB && (
+          <span className="topbar-clock">🕐 {clockStr}</span>
+        )}
+        {/* Fullscreen: desktop only */}
+        {!IS_WEB && (
+          <button className="btn btn-ghost btn-sm" onClick={handleFullscreen} title="Toggle fullscreen">⛶</button>
+        )}
       </div>
     </header>
   );

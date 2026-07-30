@@ -31,6 +31,9 @@ import CategoryManager from "./pages/shared/CategoryManager";
 
 import CustomerDisplayPage from "./pages/CustomerDisplayPage";
 
+// true when running in a browser (not Electron)
+const IS_WEB = process.env.IS_WEB === 'true';
+
 const DEFAULT_VIEW = {
   Owner: "owner-dashboard",
   Admin: "owner-dashboard",
@@ -39,14 +42,16 @@ const DEFAULT_VIEW = {
 };
 
 const AppInner = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [view, setView] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (user) {
       setView(DEFAULT_VIEW[user.role] || "pos");
-      setSidebarOpen(user.role !== "Cashier");
+      // Web: sidebar starts closed so it doesn't cover the full screen on mobile
+      // Desktop: open for Owner/Manager, closed for Cashier
+      setSidebarOpen(IS_WEB ? false : user.role !== "Cashier");
     } else {
       setView(null);
     }
@@ -68,6 +73,28 @@ const AppInner = () => {
     );
 
   if (!user) return <LoginPage />;
+
+  // Cashier role is desktop-only — web login should redirect them away
+  if (IS_WEB && user.role === 'Cashier') {
+    return (
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1C1C2E' }}>
+        <div style={{ textAlign: 'center', color: '#fff', maxWidth: 360 }}>
+          <div style={{ fontSize: 56, marginBottom: 16 }}>🖥️</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#E91E63', marginBottom: 10 }}>Desktop App Required</div>
+          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 28 }}>
+            The cashier POS is only available on the shop desktop app.<br />
+            Please sign in on the computer at the shop.
+          </div>
+          <button
+            onClick={logout}
+            style={{ background: '#E91E63', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 28px', fontSize: 14, cursor: 'pointer', fontWeight: 700 }}
+          >
+            ← Sign Out
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const renderPage = () => {
     switch (view) {
@@ -105,15 +132,22 @@ const AppInner = () => {
   return (
     <div className="app-shell">
       {sidebarOpen && (
-        <Sidebar currentView={view} setView={(v) => { setView(v); if (user.role === "Cashier") setSidebarOpen(false); }} />
+        <Sidebar
+          currentView={view}
+          setView={(v) => { setView(v); if (IS_WEB || user.role === "Cashier") setSidebarOpen(false); }}
+          onClose={IS_WEB ? () => setSidebarOpen(false) : null}
+        />
       )}
       <div className="main-area" style={{ position: "relative" }}>
         <TopBar
           currentView={view}
-          sidebarToggle={user.role === "Cashier" ? {
-            isOpen: sidebarOpen,
-            onToggle: () => setSidebarOpen((o) => !o),
-          } : null}
+          sidebarToggle={
+            // Desktop: only Cashier gets a toggle (Owner/Manager sidebar is always open)
+            // Web/mobile: all roles get a toggle so the sidebar can be hidden on small screens
+            (IS_WEB || user.role === "Cashier")
+              ? { isOpen: sidebarOpen, onToggle: () => setSidebarOpen((o) => !o) }
+              : null
+          }
         />
         {renderPage()}
       </div>

@@ -181,7 +181,7 @@ const DiscountManager = () => {
         </div>
       )}
 
-      <div className="grid-3">
+      <div className="grid-3 discount-grid">
         {discounts.map((d) => (
           <div
             key={d.id}

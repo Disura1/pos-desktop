@@ -1468,6 +1468,7 @@ const CategoryManager = () => {
 
       {/* Header */}
       <div
+        className="cat-header"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -1545,7 +1546,7 @@ const CategoryManager = () => {
         </div>
 
         {/* Action buttons — manager only (owner has no add/edit/delete) */}
-        <div style={{ display: "flex", gap: 10 }}>
+        <div className="cat-header-buttons" style={{ display: "flex", gap: 10 }}>
           {isManager && (
             <button
               className="btn btn-outline"

@@ -167,43 +167,50 @@ const OwnerReports = () => {
     <div className="page-content">
       {/* Filters */}
       <div className="card" style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div>
+        <div className="report-filters">
+          {/* Row 1 (desktop) / Row 1 (mobile): Branch selector */}
+          <div className="rf-branch">
             <label className="form-label">Branch</label>
             {isManager ? (
-              <div className="form-control" style={{ minWidth: 180, background: 'var(--bg)', color: 'var(--text-sub)' }}>
+              <div className="form-control" style={{ background: 'var(--bg)', color: 'var(--text-sub)' }}>
                 {user.branchName || 'Your Branch'}
               </div>
             ) : (
-              <select className="form-control" style={{ minWidth: 180 }} value={branchId} onChange={e => setBranchId(e.target.value)}>
+              <select className="form-control" value={branchId} onChange={e => setBranchId(e.target.value)}>
                 <option value="">All Branches</option>
                 {branches.map(b => <option key={b.id} value={b.id}>{b.branch_name}</option>)}
               </select>
             )}
           </div>
-          <div>
-            <label className="form-label">From</label>
-            <input className="form-control" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+          {/* Row 2 (mobile): From + To side by side */}
+          <div className="rf-date-row">
+            <div className="rf-from">
+              <label className="form-label">From</label>
+              <input className="form-control" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+            </div>
+            <div className="rf-to">
+              <label className="form-label">To</label>
+              <input className="form-control" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+            </div>
           </div>
-          <div>
-            <label className="form-label">To</label>
-            <input className="form-control" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-          </div>
-          <button className="btn btn-primary" onClick={loadData} disabled={loading}>
-            {loading ? <span className="spinner" /> : '🔍 Generate Report'}
-          </button>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {['7d','30d','90d'].map(p => (
-              <button key={p} className="btn btn-outline btn-sm" onClick={() => { setStartDate(daysAgo(parseInt(p))); setEndDate(today()); }}>
-                {p}
-              </button>
-            ))}
+          {/* Row 3 (mobile): Shortcut buttons + Generate */}
+          <div className="rf-action-row">
+            <div className="rf-shortcuts">
+              {['7d','30d','90d'].map(p => (
+                <button key={p} className="btn btn-outline btn-sm" onClick={() => { setStartDate(daysAgo(parseInt(p))); setEndDate(today()); }}>
+                  {p}
+                </button>
+              ))}
+            </div>
+            <button className="btn btn-primary rf-generate" onClick={loadData} disabled={loading}>
+              {loading ? <span className="spinner" /> : '🔍 Generate Report'}
+            </button>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '2px solid var(--border)', paddingBottom: 0 }}>
+      <div className="report-tabs" style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '2px solid var(--border)', paddingBottom: 0 }}>
         {tabs.map(t => (
           <button
             key={t.id}
