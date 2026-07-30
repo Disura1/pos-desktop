@@ -6,9 +6,9 @@
   "main": ".webpack/main",
   "private": true,
   "scripts": {
-    "start": "electron-forge start",
-    "package": "electron-forge package",
-    "make": "electron-forge make",
+    "start": "cross-env API_URL=http://localhost:5000/api electron-forge start",
+    "package": "cross-env API_URL=https://pos-backend-y8sj.onrender.com/api electron-forge package",
+    "make": "cross-env API_URL=https://pos-backend-y8sj.onrender.com/api electron-forge make",
     "publish": "electron-forge publish",
     "lint": "echo \"No linting configured\"",
     "build:web": "webpack --config webpack.web.config.js"
@@ -35,6 +35,7 @@
     "@vercel/webpack-asset-relocator-loader": "^1.7.3",
     "babel-loader": "^10.1.1",
     "copy-webpack-plugin": "^14.0.0",
+    "cross-env": "^10.1.0",
     "css-loader": "^6.11.0",
     "electron": "41.3.0",
     "html-webpack-plugin": "^5.6.8",
