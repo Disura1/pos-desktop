@@ -1,4 +1,8 @@
 const { app, BrowserWindow, ipcMain, Notification, Menu, Tray, nativeImage, screen, dialog } = require('electron');
+
+// Suppress GPU process crashes on machines with incompatible drivers
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-software-rasterizer');
 const path = require('node:path');
 const fs = require('node:fs');
 
