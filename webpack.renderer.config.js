@@ -29,7 +29,7 @@ module.exports = {
   },
   plugins: [
     new webpack.DefinePlugin({
-      'process.env.API_URL': JSON.stringify(process.env.API_URL || 'http://localhost:5000/api'),
+      'process.env.API_URL': JSON.stringify(process.env.API_URL || 'https://pos-backend-y8sj.onrender.com/api'),
       'process.env.IS_WEB': JSON.stringify('false'),
     }),
   ],
