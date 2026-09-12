@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('cart-updated', handler);
     return () => ipcRenderer.removeListener('cart-updated', handler);
   },
+  openCashDrawer: () => ipcRenderer.invoke('open-cash-drawer'),
   exportFile: (defaultName, content) => ipcRenderer.invoke('export-file', { defaultName, content }),
   offlineCache: {
     getCatalog: () => ipcRenderer.invoke('offline-get-catalog'),

@@ -26,6 +26,8 @@ const POSPage = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [heldSales, setHeldSales] = useState([]);
   const [showHeldPanel, setShowHeldPanel] = useState(false);
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [pendingCardPayload, setPendingCardPayload] = useState(null);
 
   useEffect(() => {
     getHeldSales().then(setHeldSales).catch(() => {});
@@ -139,22 +141,38 @@ const POSPage = () => {
     };
   }, [cart, subtotal, discountAmt, total]);
 
+  const buildPayload = () => ({
+    cart: cart.map(i => ({ sku: i.sku, quantity: i.quantity, variant_price: i.price, base_price: i.price })),
+    subtotal, discountId: selectedDiscount?.id || null,
+    discountAmount: discountAmt, total, paymentMethod,
+    amountTendered: parseFloat(amountTendered || total), branchId,
+  });
+
   const handleCheckout = async () => {
     if (cart.length === 0) { showMsg('error', 'Cart is empty!'); return; }
     if (paymentMethod === 'cash' && parseFloat(amountTendered || 0) < total) {
       showMsg('error', 'Amount tendered is less than total!'); return;
     }
+    // Card: show confirmation modal first — cashier must process card on terminal
+    if (paymentMethod === 'card') {
+      setPendingCardPayload(buildPayload());
+      setShowCardModal(true);
+      return;
+    }
+    await submitCheckout(buildPayload());
+  };
+
+  const submitCheckout = async (payload) => {
     setLoading(true);
     try {
-      const payload = {
-        cart: cart.map(i => ({ sku: i.sku, quantity: i.quantity, variant_price: i.price, base_price: i.price })),
-        subtotal, discountId: selectedDiscount?.id || null,
-        discountAmount: discountAmt, total, paymentMethod,
-        amountTendered: parseFloat(amountTendered || total), branchId,
-      };
       const res = await processCheckout(payload);
 
       window.electronAPI?.showNotification('Sale Complete', `Sale #${res.saleId} · ${fmtCurrency(total)}`);
+
+      // Open cash drawer before printing receipt (cash sales only)
+      if (payload.paymentMethod === 'cash') {
+        window.electronAPI?.openCashDrawer?.();
+      }
 
       const saleDetail = await getSaleDetail(res.saleId);
       await printReceipt({
@@ -171,21 +189,20 @@ const POSPage = () => {
     } catch (err) {
       if (isNetworkError(err)) {
         // No connection — queue the sale locally instead of losing it
-        const payload = {
-          cart: cart.map(i => ({ sku: i.sku, quantity: i.quantity, variant_price: i.price, base_price: i.price })),
-          subtotal, discountId: selectedDiscount?.id || null,
-          discountAmount: discountAmt, total, paymentMethod,
-          amountTendered: parseFloat(amountTendered || total), branchId,
-        };
         await queueOfflineSale(payload);
+
+        if (payload.paymentMethod === 'cash') {
+          window.electronAPI?.openCashDrawer?.();
+        }
 
         const offlineReceiptNo = `OFFLINE-${Date.now()}`;
         await printReceipt({
           sale: {
             receipt_number: offlineReceiptNo,
             sale_date: new Date(),
-            subtotal, discount_amount: discountAmt, total_amount: total,
-            amount_tendered: parseFloat(amountTendered || total), change_amount: change,
+            subtotal: payload.subtotal, discount_amount: payload.discountAmount,
+            total_amount: payload.total, amount_tendered: payload.amountTendered,
+            change_amount: payload.amountTendered - payload.total,
           },
           items: cart.map(i => ({ product_name: i.name, sku: i.sku, size: i.size, color: i.color, quantity: i.quantity, total_price: i.price * i.quantity })),
           branchName: user.branchName,
@@ -514,6 +531,44 @@ const POSPage = () => {
           </div>
         </div>
       </div>
+
+      {showCardModal && pendingCardPayload && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
+          <div style={{ background: 'var(--card)', borderRadius: 14, padding: 28, width: 360, boxShadow: '0 8px 32px rgba(0,0,0,0.25)' }}>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 48, marginBottom: 10 }}>💳</div>
+              <h3 style={{ margin: 0, marginBottom: 6 }}>Process Card Payment</h3>
+              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--pink)', margin: '10px 0' }}>
+                {fmtCurrency(pendingCardPayload.total)}
+              </div>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>
+                Enter this amount on the card terminal.<br />
+                Ask the customer to tap or insert their card.<br />
+                Once approved, click <strong>Payment Done</strong>.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                className="btn btn-ghost btn-block"
+                onClick={() => { setShowCardModal(false); setPendingCardPayload(null); }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary btn-block"
+                disabled={loading}
+                onClick={async () => {
+                  setShowCardModal(false);
+                  await submitCheckout(pendingCardPayload);
+                  setPendingCardPayload(null);
+                }}
+              >
+                {loading ? <span className="spinner" /> : '✅ Payment Done'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showHeldPanel && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
