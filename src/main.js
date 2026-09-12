@@ -174,9 +174,58 @@ ipcMain.handle('print-receipt', async (event, receiptHtml) => {
   await new Promise(r => setTimeout(r, 300));
 
   printWin.webContents.print(
-    { silent: false, printBackground: false, margins: { marginType: 'none' } },
+    { silent: true, printBackground: false, margins: { marginType: 'none' } },
     () => printWin.close()
   );
+});
+
+ipcMain.handle('open-cash-drawer', async () => {
+  if (require('os').platform() !== 'win32') return { ok: false };
+
+  // Send ESC/POS drawer kick bytes via Windows RAW spooler using .NET P/Invoke.
+  // This works with any USB thermal printer without extra npm packages.
+  const ps = String.raw`
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class RawPrint {
+  [DllImport("winspool.drv", CharSet=CharSet.Auto, SetLastError=true)]
+  public static extern bool OpenPrinter(string pPrinterName, out IntPtr phPrinter, IntPtr pDefault);
+  [DllImport("winspool.drv", CharSet=CharSet.Auto, SetLastError=true)]
+  public static extern bool ClosePrinter(IntPtr hPrinter);
+  [DllImport("winspool.drv", CharSet=CharSet.Auto, SetLastError=true)]
+  public static extern int StartDocPrinter(IntPtr hPrinter, int level, ref DOCINFO di);
+  [DllImport("winspool.drv", SetLastError=true)] public static extern bool EndDocPrinter(IntPtr hPrinter);
+  [DllImport("winspool.drv", SetLastError=true)] public static extern bool StartPagePrinter(IntPtr hPrinter);
+  [DllImport("winspool.drv", SetLastError=true)] public static extern bool EndPagePrinter(IntPtr hPrinter);
+  [DllImport("winspool.drv", SetLastError=true)]
+  public static extern bool WritePrinter(IntPtr hPrinter, byte[] buf, int cb, out int written);
+  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Auto)]
+  public struct DOCINFO { public int cbSize; public string pDocName; public string pOutputFile; public string pDatatype; public int fwType; }
+}
+"@
+$name = (Get-WmiObject -Query "SELECT Name FROM Win32_Printer WHERE Default=$true").Name
+if (!$name) { exit 1 }
+$h = [IntPtr]::Zero
+[RawPrint]::OpenPrinter($name, [ref]$h, [IntPtr]::Zero) | Out-Null
+$di = New-Object RawPrint+DOCINFO; $di.cbSize=20; $di.pDocName="drawer"; $di.pDatatype="RAW"
+[RawPrint]::StartDocPrinter($h, 1, [ref]$di) | Out-Null
+[RawPrint]::StartPagePrinter($h) | Out-Null
+$bytes = [byte[]](0x10,0x14,0x01,0x00,0x05); $w=0
+[RawPrint]::WritePrinter($h, $bytes, $bytes.Length, [ref]$w) | Out-Null
+[RawPrint]::EndPagePrinter($h) | Out-Null
+[RawPrint]::EndDocPrinter($h) | Out-Null
+[RawPrint]::ClosePrinter($h) | Out-Null
+exit 0
+`;
+
+  const { execFile } = require('child_process');
+  return new Promise((resolve) => {
+    execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps],
+      { timeout: 6000 },
+      (err) => resolve({ ok: !err })
+    );
+  });
 });
 
 ipcMain.handle('show-notification', (event, { title, body }) => {
