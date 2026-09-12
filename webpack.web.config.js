@@ -41,6 +41,10 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         { from: './src/assets/logo.jpg', to: 'favicon.jpg' },
+        { from: './src/manifest.json',   to: 'manifest.json' },
+        { from: './src/service-worker.js', to: 'service-worker.js' },
+        { from: './src/icon-192.png',    to: 'icon-192.png' },
+        { from: './src/icon-512.png',    to: 'icon-512.png' },
       ],
     }),
     new webpack.DefinePlugin({
