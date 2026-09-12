@@ -1,7 +1,7 @@
 {
   "name": "teen-girl-pos",
   "productName": "Teen Girl POS",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Teen Girl Boutique Point of Sale System",
   "main": ".webpack/main",
   "private": true,
