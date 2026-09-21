@@ -152,29 +152,56 @@ ipcMain.handle('offline-remove-queue', (event, localId) => {
 });
 
 ipcMain.handle('print-receipt', async (event, receiptHtml) => {
-  // Basic validation — only accept strings, cap size at 100KB
   if (typeof receiptHtml !== 'string' || receiptHtml.length > 100000) {
     console.error('print-receipt: invalid or oversized HTML rejected');
     return;
   }
-  const printWin = new BrowserWindow({
-    show: false,
-    width: 400,
-    height: 700,
-    webPreferences: { nodeIntegration: false, contextIsolation: true },
-  });
+
+  // 80mm roll — printable width is ~76mm (1.5mm non-printable each side per DBL 365B spec).
+  // Body is centred with margin:0 auto so content fills the roll left-to-right correctly.
   const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8">
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: 'Courier New', Courier, monospace; font-size: 12px; width: 72mm; }
+      body {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 12px;
+        width: 73mm;
+        margin-left: 5mm;
+        padding: 10mm 0 7mm 0;
+      }
     </style>
   </head><body>${receiptHtml}</body></html>`;
 
-  await printWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(fullHtml)}`);
-  await new Promise(r => setTimeout(r, 300));
+  // Write to a temp file — data: URLs block executeJavaScript so we can't measure height.
+  const tmpFile = path.join(require('os').tmpdir(), `receipt_${Date.now()}.html`);
+  fs.writeFileSync(tmpFile, fullHtml, 'utf8');
+
+  const printWin = new BrowserWindow({
+    show: false,
+    width: 400,
+    height: 800,
+    webPreferences: { nodeIntegration: false, contextIsolation: true },
+  });
+
+  await printWin.loadURL(`file://${tmpFile}`);
+  // Measure exact content height so the printed page has no trailing blank paper.
+  const contentHeightPx = await printWin.webContents.executeJavaScript(
+    'document.body.scrollHeight'
+  );
+  fs.unlink(tmpFile, () => {});
+
+  // Convert px (96dpi) → microns. Add 6mm (6000µm) bottom feed so the last line
+  // clears the cutter blade before the printer cuts/stops.
+  const heightMicrons = Math.round(contentHeightPx / 96 * 25.4 * 1000) + 3000;
+  const widthMicrons  = 80000; // 80mm roll
 
   printWin.webContents.print(
-    { silent: true, printBackground: false, margins: { marginType: 'none' } },
+    {
+      silent: true,
+      printBackground: false,
+      margins: { marginType: 'none' },
+      pageSize: { width: widthMicrons, height: heightMicrons },
+    },
     () => printWin.close()
   );
 });

@@ -56,8 +56,12 @@ export const buildReceiptHtml = ({ sale, items, branchName, cashierName }) => {
       <span>Change</span><span>${fmtCurrency(sale.change_amount)}</span>
     </div>` : ''}
     <div style="border-top:1px dashed #000;margin:10px 0;"></div>
-    <div style="text-align:center;font-size:11px;color:#555;">Thank you for shopping with us!</div>
-    <br><br>
+    <div style="text-align:center;font-size:10px;color:#555;margin-bottom:6px;">
+      Items may be exchanged or returned within <strong>3 days</strong> of purchase<br>
+      with original receipt and tags attached.
+    </div>
+    <div style="border-top:1px dashed #000;margin:6px 0;"></div>
+    <div style="text-align:center;font-size:11px;color:#555;margin-bottom:4px;">Thank you for shopping with us!</div>
   `;
 };
 
