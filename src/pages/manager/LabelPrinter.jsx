@@ -28,8 +28,8 @@ const LabelPrinter = () => {
 
   // label queue
   const [queue, setQueue]           = useState([]); // [{ variantId, productName, sku, barcode, size, color, price, copies }]
-  const [labelSize, setLabelSize]   = useState("medium");
   const [msg, setMsg]               = useState({ text: "", type: "success" });
+  const [printMsg, setPrintMsg]     = useState("");
 
   const scanRef   = useRef(null);
   const searchRef = useRef(null);
@@ -390,36 +390,16 @@ const LabelPrinter = () => {
               )}
             </div>
 
-            {/* Label size picker */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-sub)", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                Label Size
+            {/* Print success banner */}
+            {printMsg && (
+              <div style={{
+                background: "#d4edda", color: "#155724", border: "1px solid #c3e6cb",
+                borderRadius: "var(--radius-sm)", padding: "10px 14px",
+                fontSize: 13, fontWeight: 600, textAlign: "center", marginBottom: 12,
+              }}>
+                {printMsg}
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                {[
-                  { key: "small",  label: "Small",  sub: "38×25mm" },
-                  { key: "medium", label: "Medium", sub: "58×40mm" },
-                  { key: "large",  label: "Large",  sub: "100×50mm" },
-                ].map((s) => (
-                  <div
-                    key={s.key}
-                    onClick={() => setLabelSize(s.key)}
-                    style={{
-                      flex: 1, textAlign: "center", padding: "8px 6px",
-                      border: `2px solid ${labelSize === s.key ? "var(--pink)" : "var(--border)"}`,
-                      borderRadius: "var(--radius-sm)", cursor: "pointer",
-                      background: labelSize === s.key ? "var(--pink-light)" : "var(--card)",
-                      transition: "all 0.12s",
-                    }}
-                  >
-                    <div style={{ fontWeight: 700, fontSize: 12, color: labelSize === s.key ? "var(--pink-dark)" : "var(--text)" }}>
-                      {s.label}
-                    </div>
-                    <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{s.sub}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
 
             {/* Queue items */}
             {queue.length === 0 ? (
@@ -518,16 +498,18 @@ const LabelPrinter = () => {
                     <span style={{ color: "var(--text-sub)" }}>Total labels:</span>
                     <strong style={{ color: "var(--pink-dark)", fontSize: 15 }}>{totalLabels}</strong>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginTop: 4 }}>
-                    <span style={{ color: "var(--text-sub)" }}>Label size:</span>
-                    <strong style={{ textTransform: "capitalize" }}>{labelSize}</strong>
-                  </div>
                 </div>
 
                 <button
                   className="btn btn-primary btn-block btn-lg"
                   disabled={totalLabels === 0}
-                  onClick={() => printLabel(queue, labelSize)}
+                  onClick={async () => {
+                    const count = totalLabels;
+                    await printLabel(queue);
+                    setQueue([]);
+                    setPrintMsg(`✅ ${count} label${count !== 1 ? "s" : ""} sent to printer`);
+                    setTimeout(() => setPrintMsg(""), 4000);
+                  }}
                   style={{ width: "100%" }}
                 >
                   🖨 Print {totalLabels} Label{totalLabels !== 1 ? "s" : ""}

@@ -206,6 +206,40 @@ ipcMain.handle('print-receipt', async (event, receiptHtml) => {
   );
 });
 
+ipcMain.handle('print-label', async (event, { html, widthMicrons, heightMicrons }) => {
+  if (typeof html !== 'string' || html.length > 500000) return;
+
+  const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; width: 30mm; background: #fff; }
+    </style>
+  </head><body>${html}</body></html>`;
+
+  const tmpFile = path.join(require('os').tmpdir(), `label_${Date.now()}.html`);
+  fs.writeFileSync(tmpFile, fullHtml, 'utf8');
+
+  const printWin = new BrowserWindow({
+    show: false,
+    width: 200,
+    height: 400,
+    webPreferences: { nodeIntegration: false, contextIsolation: true },
+  });
+
+  await printWin.loadURL(`file://${tmpFile}`);
+  fs.unlink(tmpFile, () => {});
+
+  printWin.webContents.print(
+    {
+      silent: true,
+      printBackground: true,
+      margins: { marginType: 'none' },
+      pageSize: { width: widthMicrons, height: heightMicrons },
+    },
+    () => printWin.close()
+  );
+});
+
 ipcMain.handle('open-cash-drawer', async () => {
   if (require('os').platform() !== 'win32') return { ok: false };
 

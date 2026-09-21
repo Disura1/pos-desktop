@@ -191,6 +191,26 @@ const Sidebar = ({ currentView, setView, onClose }) => {
         <button className="sidebar-logout-btn" onClick={logout}>
           ⬅ Sign Out
         </button>
+
+        {/* Developer credit */}
+        <div style={{
+          textAlign: 'center', padding: '10px 12px 4px',
+          borderTop: '1px solid var(--border)', marginTop: 8,
+        }}>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>Developed by</div>
+          <a
+            href="https://www.linkedin.com/in/disura-sandaruwan-649a422b8"
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => { e.preventDefault(); window.open('https://www.linkedin.com/in/disura-sandaruwan-649a422b8'); }}
+            style={{
+              fontSize: 11, fontWeight: 600, color: 'var(--pink)',
+              textDecoration: 'none', cursor: 'pointer',
+            }}
+          >
+            M. P. P. Disura Sandaruwan
+          </a>
+        </div>
       </div>
     </aside>
   );

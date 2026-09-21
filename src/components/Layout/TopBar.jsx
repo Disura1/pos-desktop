@@ -50,14 +50,14 @@ const TopBar = ({ currentView, sidebarToggle }) => {
         {sidebarToggle && (
           <button
             onClick={sidebarToggle.onToggle}
-            title={sidebarToggle.isOpen ? 'Hide menu' : 'Show menu'}
+            title="Menu"
             style={{
               background: 'var(--card)', border: '1.5px solid var(--border)',
               borderRadius: 'var(--radius-sm)', padding: '5px 10px',
               cursor: 'pointer', fontSize: 16, color: 'var(--text)', lineHeight: 1, flexShrink: 0,
             }}
           >
-            {sidebarToggle.isOpen ? '✕' : '☰'}
+            ☰
           </button>
         )}
 
