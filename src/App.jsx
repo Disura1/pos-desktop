@@ -30,6 +30,7 @@ import ReturnsPage from "./pages/cashier/ReturnsPage";
 import CategoryManager from "./pages/shared/CategoryManager";
 
 import CustomerDisplayPage from "./pages/CustomerDisplayPage";
+import WakeUpGate from "./components/WakeUpGate";
 
 // true when running in a browser (not Electron)
 const IS_WEB = process.env.IS_WEB === 'true';
@@ -170,6 +171,15 @@ const App = () => {
   const params = new URLSearchParams(window.location.search);
   if (params.get('customerDisplay') === '1') {
     return <CustomerDisplayPage />; // no auth needed — just a passive display
+  }
+  if (IS_WEB) {
+    return (
+      <WakeUpGate>
+        <AuthProvider>
+          <AppInner />
+        </AuthProvider>
+      </WakeUpGate>
+    );
   }
   return (
     <AuthProvider>
