@@ -67,38 +67,6 @@ const ConfirmDialog = ({
   </div>
 );
 
-const LabelSizePicker = ({ value, onChange }) => (
-  <div className="form-group">
-    <label className="form-label">Label Size</label>
-    <div style={{ display: "flex", gap: 6 }}>
-      {[
-        { key: "small", label: "Small", sub: "38×25mm" },
-        { key: "medium", label: "Medium", sub: "58×40mm" },
-        { key: "large", label: "Large", sub: "100×50mm" },
-      ].map((s) => (
-        <button
-          key={s.key}
-          type="button"
-          onClick={() => onChange(s.key)}
-          style={{
-            flex: 1,
-            padding: "8px 6px",
-            borderRadius: "var(--radius-sm)",
-            border: `2px solid ${value === s.key ? "var(--pink)" : "var(--border)"}`,
-            background: value === s.key ? "var(--pink-light)" : "var(--card)",
-            cursor: "pointer",
-            textAlign: "center",
-          }}
-        >
-          <div style={{ fontWeight: 700, fontSize: 11, color: value === s.key ? "var(--pink-dark)" : "var(--text)" }}>
-            {s.label}
-          </div>
-          <div style={{ fontSize: 9, color: "var(--text-muted)" }}>{s.sub}</div>
-        </button>
-      ))}
-    </div>
-  </div>
-);
 
 // ── SKU generator ──────────────────────────────────────────────────────────
 const computeSKU = (productName, size, color, existingSkus = []) => {
@@ -171,7 +139,6 @@ const ReceiveStock = () => {
   const [msg, setMsg] = useState({ text: "", type: "success" });
   const [movements, setMovements] = useState([]);
 
-  const [labelSize, setLabelSize] = useState("medium");
 
   const [unitCost, setUnitCost] = useState("");
 
@@ -343,7 +310,6 @@ const ReceiveStock = () => {
               copies,
             },
           ],
-          labelSize,
         );
       }
 
@@ -430,7 +396,6 @@ const ReceiveStock = () => {
               copies: parseInt(quantity) || 1,
             },
           ],
-          labelSize,
         );
       }
 
@@ -970,8 +935,6 @@ const ReceiveStock = () => {
                 />
               </div>
 
-              <LabelSizePicker value={labelSize} onChange={setLabelSize} />
-
               <div style={{ display: "flex", gap: 8 }}>
                 <button
                   className="btn btn-secondary"
@@ -1129,8 +1092,6 @@ const ReceiveStock = () => {
                     placeholder="e.g. Supplier delivery ref #1234"
                   />
                 </div>
-
-                <LabelSizePicker value={labelSize} onChange={setLabelSize} />
 
                 <div style={{ display: "flex", gap: 8 }}>
                   <button

@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   printReceipt: (html) => ipcRenderer.invoke('print-receipt', html),
+  printLabel: (html, widthMicrons, heightMicrons) => ipcRenderer.invoke('print-label', { html, widthMicrons, heightMicrons }),
   showNotification: (title, body) => ipcRenderer.invoke('show-notification', { title, body }),
   toggleFullscreen: () => ipcRenderer.invoke('toggle-fullscreen'),
   minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
