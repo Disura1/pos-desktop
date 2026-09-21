@@ -29,6 +29,7 @@ const LabelPrinter = () => {
   // label queue
   const [queue, setQueue]           = useState([]); // [{ variantId, productName, sku, barcode, size, color, price, copies }]
   const [msg, setMsg]               = useState({ text: "", type: "success" });
+  const [printMsg, setPrintMsg]     = useState("");
 
   const scanRef   = useRef(null);
   const searchRef = useRef(null);
@@ -389,6 +390,17 @@ const LabelPrinter = () => {
               )}
             </div>
 
+            {/* Print success banner */}
+            {printMsg && (
+              <div style={{
+                background: "#d4edda", color: "#155724", border: "1px solid #c3e6cb",
+                borderRadius: "var(--radius-sm)", padding: "10px 14px",
+                fontSize: 13, fontWeight: 600, textAlign: "center", marginBottom: 12,
+              }}>
+                {printMsg}
+              </div>
+            )}
+
             {/* Queue items */}
             {queue.length === 0 ? (
               <div className="empty-state">
@@ -491,7 +503,13 @@ const LabelPrinter = () => {
                 <button
                   className="btn btn-primary btn-block btn-lg"
                   disabled={totalLabels === 0}
-                  onClick={() => printLabel(queue)}
+                  onClick={async () => {
+                    const count = totalLabels;
+                    await printLabel(queue);
+                    setQueue([]);
+                    setPrintMsg(`✅ ${count} label${count !== 1 ? "s" : ""} sent to printer`);
+                    setTimeout(() => setPrintMsg(""), 4000);
+                  }}
                   style={{ width: "100%" }}
                 >
                   🖨 Print {totalLabels} Label{totalLabels !== 1 ? "s" : ""}
