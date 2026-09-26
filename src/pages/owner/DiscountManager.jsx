@@ -8,7 +8,7 @@ import {
 import { fmtCurrency } from "../../utils/formatters";
 
 // ── Non-blocking confirm dialog (replaces window.confirm) ──────────────────
-const ConfirmDialog = ({ message, onConfirm, onCancel }) => (
+const ConfirmDialog = ({ message, action, onConfirm, onCancel }) => (
   <div
     style={{
       position: "fixed",
@@ -47,7 +47,7 @@ const ConfirmDialog = ({ message, onConfirm, onCancel }) => (
           Cancel
         </button>
         <button className="btn btn-danger" onClick={onConfirm}>
-          Disable
+          {action === "delete" ? "Delete" : "Disable"}
         </button>
       </div>
     </div>
@@ -71,10 +71,11 @@ const DiscountManager = () => {
   const [msg, setMsg] = useState({ text: "", type: "" });
   const [confirmDialog, setConfirmDialog] = useState(null);
 
-  const confirm = (message) =>
+  const confirm = (message, action = "disable") =>
     new Promise((resolve) => {
       setConfirmDialog({
         message,
+        action,
         onConfirm: () => {
           setConfirmDialog(null);
           resolve(true);
@@ -140,18 +141,30 @@ const DiscountManager = () => {
     }
   };
 
+  const handleDisable = async (d) => {
+    const ok = await confirm(`Disable discount "${d.name}"?\nIt will no longer be available at checkout.`);
+    if (!ok) return;
+    try {
+      await updateDiscount(d.id, { ...d, is_active: false });
+      showMsg(`"${d.name}" disabled.`);
+      load();
+    } catch (err) {
+      showMsg(err.response?.data?.error || "Error disabling discount", "danger");
+    }
+  };
+
   const handleDelete = async (d) => {
-    const ok = await confirm(`Deactivate discount "${d.name}"?`);
+    const ok = await confirm(
+      `Permanently delete discount "${d.name}"?\n\nThis cannot be undone. Past sales using this discount are not affected.`,
+      "delete"
+    );
     if (!ok) return;
     try {
       await deleteDiscount(d.id);
-      showMsg(`"${d.name}" deactivated.`);
+      showMsg(`"${d.name}" deleted.`);
       load();
     } catch (err) {
-      showMsg(
-        err.response?.data?.error || "Error deactivating discount",
-        "danger",
-      );
+      showMsg(err.response?.data?.error || "Error deleting discount", "danger");
     }
   };
 
@@ -242,12 +255,19 @@ const DiscountManager = () => {
               </button>
               {d.is_active && (
                 <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => handleDelete(d)}
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => handleDisable(d)}
                 >
                   Disable
                 </button>
               )}
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={() => handleDelete(d)}
+                title="Permanently delete"
+              >
+                🗑
+              </button>
             </div>
           </div>
         ))}
