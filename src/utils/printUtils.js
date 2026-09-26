@@ -91,6 +91,51 @@ export const buildReceiptHtml = ({ sale, items, branchName, cashierName }) => {
   `;
 };
 
+export const buildExchangeSlipHtml = ({ returnNumber, createdAt, cashierName, items, exchangeValue }) => {
+  const itemRows = items.map(item => `
+    <div style="display:flex;justify-content:space-between;font-size:11px;margin:3px 0;">
+      <span style="flex:1;padding-right:6px;">
+        ${esc(item.product_name)}${item.size ? ` (${esc(item.size)})` : ''}${item.color ? ` / ${esc(item.color)}` : ''}
+        × ${item.quantity}
+      </span>
+      <span style="white-space:nowrap;">${fmtAmt(item.unit_price * item.quantity)}</span>
+    </div>
+  `).join('');
+
+  return `
+    <div style="text-align:center;margin-bottom:10px;">
+      <div style="font-size:15px;font-weight:900;letter-spacing:1px;">EXCHANGE SLIP</div>
+      <div style="font-size:10px;color:#555;margin-top:2px;">Internal use only — not a receipt</div>
+    </div>
+    <div style="border-top:1px dashed #000;margin:6px 0;"></div>
+    <div style="font-size:11px;margin-bottom:3px;font-weight:700;">Ref: ${esc(returnNumber)}</div>
+    <div style="font-size:11px;margin-bottom:3px;">Date: ${fmtDateTime(createdAt)}</div>
+    <div style="font-size:11px;margin-bottom:8px;">Cashier: ${esc(cashierName)}</div>
+    <div style="border-top:1px dashed #000;margin:6px 0;"></div>
+    <div style="font-size:11px;font-weight:700;margin-bottom:4px;">Items Returned:</div>
+    ${itemRows}
+    <div style="border-top:1px dashed #000;margin:6px 0;"></div>
+    <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:900;margin-top:4px;">
+      <span>Exchange Value</span><span>LKR ${fmtAmt(exchangeValue)}</span>
+    </div>
+    <div style="border-top:1px dashed #000;margin:10px 0;"></div>
+    <div style="text-align:center;font-size:10px;color:#555;">Customer to select replacement item(s)</div>
+  `;
+};
+
+export const printExchangeSlip = async (data) => {
+  const html = buildExchangeSlipHtml(data);
+  if (window.electronAPI?.printReceipt) {
+    await window.electronAPI.printReceipt(html);
+  } else {
+    const w = window.open('', 'PRINT', 'width=400,height=600');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+      <style>body{font-family:'Courier New',monospace;font-size:12px;width:72mm;padding:8px;}</style>
+    </head><body>${html}<script>window.onload=()=>{window.print();window.close();}</script></body></html>`);
+    w.document.close();
+  }
+};
+
 export const printReceipt = async (data) => {
   const html = buildReceiptHtml(data);
   if (window.electronAPI?.printReceipt) {

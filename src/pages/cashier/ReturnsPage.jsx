@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { lookupSaleForReturn, searchSalesForReturn, processReturn, getReturnHistory } from "../../services/returnService";
 import { fmtCurrency, fmtDateTime } from "../../utils/formatters";
-import { printReceipt } from "../../utils/printUtils";
+import { printExchangeSlip } from "../../utils/printUtils";
 
 const ReturnsPage = () => {
   const { user } = useAuth();
@@ -13,7 +13,6 @@ const ReturnsPage = () => {
   const [items, setItems] = useState([]);
   const [returnQty, setReturnQty] = useState({});
   const [reason, setReason] = useState("");
-  const [refundMethod, setRefundMethod] = useState("cash");
   const [looking, setLooking] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState({ text: "", type: "success" });
@@ -71,7 +70,6 @@ const ReturnsPage = () => {
       const data = await lookupSaleForReturn(exactReceiptNumber);
       setSale(data.sale);
       setItems(data.items);
-      setRefundMethod(data.sale.payment_method || "cash");
       const initialQty = {};
       data.items.forEach((i) => { initialQty[i.sale_item_id] = 0; });
       setReturnQty(initialQty);
@@ -110,35 +108,25 @@ const ReturnsPage = () => {
         saleId: sale.id,
         items: selected,
         reason: reason || null,
-        refundMethod,
+        refundMethod: 'exchange',
       });
-      showMsg("success", `✅ Refund of ${fmtCurrency(result.refundAmount)} processed successfully`);
+      showMsg("success", `✅ Exchange of ${fmtCurrency(result.refundAmount)} processed successfully`);
 
-      // Print a refund slip using the same receipt template, marked as a return
-      await printReceipt({
-        sale: {
-          receipt_number: result.returnNumber,
-          branch_address: sale.branch_address,
-          branch_phone: sale.branch_phone,
-          sale_date: result.createdAt,
-          subtotal: -result.refundAmount,
-          discount_amount: 0,
-          total_amount: -result.refundAmount,
-          amount_tendered: -result.refundAmount,
-          change_amount: 0,
-        },
+      // Print an exchange slip
+      await printExchangeSlip({
+        returnNumber: result.returnNumber,
+        createdAt: result.createdAt,
+        cashierName: user.fullName || user.username,
+        exchangeValue: result.refundAmount,
         items: items
           .filter((i) => (returnQty[i.sale_item_id] || 0) > 0)
           .map((i) => ({
-            product_name: `REFUND: ${i.product_name}`,
-            sku: i.sku,
+            product_name: i.product_name,
             size: i.size,
             color: i.color,
             quantity: returnQty[i.sale_item_id],
-            total_price: -(returnQty[i.sale_item_id] * parseFloat(i.unit_price) * (1 - discountRatio)),
+            unit_price: parseFloat(i.unit_price) * (1 - discountRatio),
           })),
-        branchName: sale.branch_name,
-        cashierName: user.fullName || user.username,
       });
 
       setSale(null);
@@ -156,7 +144,7 @@ const ReturnsPage = () => {
 
   return (
     <div className="page-content">
-      <h2 style={{ marginBottom: 16 }}>↩️ Returns & Refunds</h2>
+      <h2 style={{ marginBottom: 16 }}>↩️ Exchange</h2>
 
       {msg.text && <div className={`alert alert-${msg.type}`} style={{ marginBottom: 16 }}>{msg.text}</div>}
 
@@ -255,28 +243,21 @@ const ReturnsPage = () => {
               <label className="form-label">Reason (optional)</label>
               <input className="form-control" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Wrong size, defective, changed mind" />
             </div>
-            <div>
-              <label className="form-label">Refund Method</label>
-              <select className="form-control" value={refundMethod} onChange={(e) => setRefundMethod(e.target.value)}>
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
-              </select>
-            </div>
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20 }}>
             <div style={{ fontSize: 18, fontWeight: 800 }}>
-              Estimated Refund: {fmtCurrency(estimatedRefund)}
+              Exchange Value: {fmtCurrency(estimatedRefund)}
             </div>
             <button className="btn btn-primary" disabled={!hasSelection || saving} onClick={handleProcessReturn}>
-              {saving ? <span className="spinner" /> : "✅ Process Return"}
+              {saving ? <span className="spinner" /> : "✅ Process Exchange"}
             </button>
           </div>
         </div>
       )}
 
       <div className="card">
-        <div className="card-title" style={{ marginBottom: 10 }}>All Returns</div>
+        <div className="card-title" style={{ marginBottom: 10 }}>All Exchanges</div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 14 }}>
           <div style={{ flex: "1 1 200px" }}>
@@ -306,7 +287,7 @@ const ReturnsPage = () => {
         </div>
 
         <table>
-          <thead><tr><th>Return #</th><th>Date</th><th>Original Sale</th><th>Items</th><th>Refund</th><th>Reason</th><th>By</th></tr></thead>
+          <thead><tr><th>Exchange #</th><th>Date</th><th>Original Sale</th><th>Items</th><th>Exchange Value</th><th>Reason</th><th>By</th></tr></thead>
           <tbody>
             {history.map((r) => (
               <tr key={r.id}>
@@ -314,13 +295,13 @@ const ReturnsPage = () => {
                 <td style={{ fontSize: 12 }}>{fmtDateTime(r.created_at)}</td>
                 <td style={{ fontFamily: "monospace", fontSize: 12 }}>{r.original_receipt_number}</td>
                 <td>{r.item_count}</td>
-                <td style={{ fontWeight: 700, color: "var(--danger)" }}>− {fmtCurrency(r.refund_amount)}</td>
+                <td style={{ fontWeight: 700 }}>{fmtCurrency(r.refund_amount)}</td>
                 <td style={{ fontSize: 12 }}>{r.reason || "—"}</td>
                 <td style={{ fontSize: 12 }}>{r.processed_by_name}</td>
               </tr>
             ))}
             {history.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: "center", color: "var(--text-muted)", padding: 20 }}>No returns found</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: "center", color: "var(--text-muted)", padding: 20 }}>No exchanges found</td></tr>
             )}
           </tbody>
         </table>
