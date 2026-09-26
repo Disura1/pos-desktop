@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { login } from '../services/authService';
 import logo from '../assets/logo.jpg';
@@ -9,6 +9,11 @@ const LoginPage = () => {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
   const [showPw, setShowPw]     = useState(false);
+  const [appVersion, setAppVersion] = useState('');
+
+  useEffect(() => {
+    window.electronAPI?.getAppVersion().then(setAppVersion).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -101,7 +106,7 @@ const LoginPage = () => {
         </form>
 
         <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 24 }}>
-          Teen Girl · POS v1.0
+          Teen Girl · POS {appVersion ? `v${appVersion}` : ''}
         </p>
       </div>
     </div>
