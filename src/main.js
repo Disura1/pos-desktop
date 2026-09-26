@@ -165,6 +165,7 @@ ipcMain.handle('print-receipt', async (event, receiptHtml) => {
       body {
         font-family: 'Courier New', Courier, monospace;
         font-size: 12px;
+        font-weight: 700;
         width: 73mm;
         margin-left: 5mm;
         padding: 10mm 0 7mm 0;
