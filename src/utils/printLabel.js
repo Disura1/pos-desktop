@@ -58,7 +58,7 @@ const buildLabelBlock = async (item) => {
   const price = parseFloat(item.price || 0).toLocaleString('en-LK', {
     minimumFractionDigits: 2,
   });
-  const sizeColor = [item.size ? `S: ${item.size}` : '', item.color || '']
+  const sizeColor = [item.size || '', item.color || '']
     .filter(Boolean)
     .join(' · ');
 
@@ -68,10 +68,9 @@ const buildLabelBlock = async (item) => {
                 page-break-after:always;">
       <div style="flex-shrink:0;">${qrHtml}</div>
       <div style="flex:1;min-width:0;overflow:hidden;">
-        <div style="font-size:5.5px;font-weight:800;color:#e91e8c;
-                    letter-spacing:0.5px;line-height:1.2;text-transform:uppercase;">TEEN GIRL</div>
         <div style="font-size:7px;font-weight:700;color:#111;line-height:1.2;
-                    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(item.productName)}</div>
+                    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+                    overflow:hidden;">${esc(item.productName)}</div>
         ${sizeColor ? `<div style="font-size:5.5px;color:#555;line-height:1.3;">${esc(sizeColor)}</div>` : ''}
         <div style="font-size:9.5px;font-weight:900;color:#111;line-height:1.3;">LKR ${esc(price)}</div>
         ${barcodeVal ? `<div style="font-size:5px;font-family:monospace;color:#777;line-height:1.2;
