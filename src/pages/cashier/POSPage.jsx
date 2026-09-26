@@ -19,6 +19,7 @@ const POSPage = () => {
   const [cart, setCart] = useState([]);
   const [discounts, setDiscounts] = useState([]);
   const [selectedDiscount, setSelectedDiscount] = useState(null);
+  const [adhocDiscount, setAdhocDiscount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [amountTendered, setAmountTendered] = useState('');
   const [loading, setLoading] = useState(false);
@@ -128,7 +129,9 @@ const POSPage = () => {
   const removeItem = (sku) => setCart(prev => prev.filter(i => i.sku !== sku));
 
   const subtotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const discountAmt = selectedDiscount ? calcDiscount(subtotal, selectedDiscount) : 0;
+  const discountAmt = selectedDiscount
+    ? calcDiscount(subtotal, selectedDiscount)
+    : (parseFloat(adhocDiscount) > 0 ? Math.min(parseFloat(adhocDiscount), subtotal) : 0);
   const total = Math.max(0, subtotal - discountAmt);
   const change = Math.max(0, parseFloat(amountTendered || 0) - total);
 
@@ -144,6 +147,7 @@ const POSPage = () => {
   const buildPayload = () => ({
     cart: cart.map(i => ({ sku: i.sku, quantity: i.quantity, variant_price: i.price, base_price: i.price })),
     subtotal, discountId: selectedDiscount?.id || null,
+    adhocDiscountAmount: !selectedDiscount && parseFloat(adhocDiscount) > 0 ? parseFloat(adhocDiscount) : null,
     discountAmount: discountAmt, total, paymentMethod,
     amountTendered: parseFloat(amountTendered || total), branchId,
   });
@@ -185,6 +189,7 @@ const POSPage = () => {
       showMsg('success', `✅ Payment successful! Receipt: ${res.receiptNumber || '#'+res.saleId} · Change: ${fmtCurrency(change)}`);
       setCart([]);
       setSelectedDiscount(null);
+      setAdhocDiscount('');
       setAmountTendered('');
     } catch (err) {
       if (isNetworkError(err)) {
@@ -212,6 +217,7 @@ const POSPage = () => {
         showMsg('success', `⚠️ Offline — sale saved as ${offlineReceiptNo}, will sync automatically once reconnected.`);
         setCart([]);
         setSelectedDiscount(null);
+        setAdhocDiscount('');
         setAmountTendered('');
       } else {
         showMsg('error', err.response?.data?.error || 'Checkout failed!');
@@ -228,6 +234,7 @@ const POSPage = () => {
       await holdSale({ cart, discountId: selectedDiscount?.id || null, customerNote: '' });
       setCart([]);
       setSelectedDiscount(null);
+      setAdhocDiscount('');
       setAmountTendered('');
       showMsg('success', '⏸ Sale held. Start a new bill anytime.');
       getHeldSales().then(setHeldSales).catch(() => {});
@@ -434,25 +441,44 @@ const POSPage = () => {
           )}
 
           <div className="pos-summary">
-            {/* Discount selector */}
-            <div style={{ marginBottom: 10 }}>
-              <label className="form-label">Discount</label>
-              <select
-                className="form-control"
-                style={{ fontSize: 13 }}
-                value={selectedDiscount?.id || ''}
-                onChange={e => {
-                  const disc = discounts.find(d => d.id === parseInt(e.target.value));
-                  setSelectedDiscount(disc || null);
-                }}
-              >
-                <option value="">No Discount</option>
-                {discounts.map(d => (
-                  <option key={d.id} value={d.id}>
-                    {d.name} ({d.type === 'percentage' ? `${d.value}%` : `LKR ${d.value}`})
-                  </option>
-                ))}
-              </select>
+            {/* Discount selectors — one row */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label className="form-label" style={{ fontSize: 11 }}>Preset Discount</label>
+                <select
+                  className="form-control"
+                  style={{ fontSize: 12 }}
+                  value={selectedDiscount?.id || ''}
+                  onChange={e => {
+                    const disc = discounts.find(d => d.id === parseInt(e.target.value));
+                    setSelectedDiscount(disc || null);
+                    if (disc) setAdhocDiscount('');
+                  }}
+                >
+                  <option value="">None</option>
+                  {discounts.map(d => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} ({d.type === 'percentage' ? `${d.value}%` : `LKR ${d.value}`})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label className="form-label" style={{ fontSize: 11 }}>Custom Discount (LKR)</label>
+                <input
+                  className="form-control"
+                  style={{ fontSize: 12 }}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Amount"
+                  value={adhocDiscount}
+                  onChange={e => {
+                    setAdhocDiscount(e.target.value);
+                    if (e.target.value) setSelectedDiscount(null);
+                  }}
+                />
+              </div>
             </div>
 
             <div className="pos-total-row">
@@ -461,7 +487,7 @@ const POSPage = () => {
             </div>
             {discountAmt > 0 && (
               <div className="pos-total-row discount">
-                <span>Discount ({selectedDiscount?.name})</span>
+                <span>Discount {selectedDiscount ? `(${selectedDiscount.name})` : '(Custom)'}</span>
                 <span>− {fmtCurrency(discountAmt)}</span>
               </div>
             )}
@@ -516,16 +542,22 @@ const POSPage = () => {
 
             {cart.length > 0 && (
               <>
-                <button
-                  className="btn btn-ghost btn-block"
-                  style={{ marginTop: 6, fontSize: 12 }}
-                  onClick={() => { setCart([]); setSelectedDiscount(null); setAmountTendered(''); }}
-                >
-                  🗑️ Clear Cart
-                </button>
-                <button className="btn btn-outline btn-block" style={{ marginTop: 6, fontSize: 12 }} onClick={handleHoldSale}>
-                  ⏸ Hold Sale
-                </button>
+                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                  <button
+                    className="btn btn-ghost btn-block"
+                    style={{ fontSize: 12, flex: 1 }}
+                    onClick={() => { setCart([]); setSelectedDiscount(null); setAdhocDiscount(''); setAmountTendered(''); }}
+                  >
+                    🗑️ Clear
+                  </button>
+                  <button
+                    className="btn btn-outline btn-block"
+                    style={{ fontSize: 12, flex: 1 }}
+                    onClick={handleHoldSale}
+                  >
+                    ⏸ Hold
+                  </button>
+                </div>
               </>
             )}
           </div>
