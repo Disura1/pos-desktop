@@ -96,7 +96,7 @@ const POSPage = () => {
         if (found) { addToCart(found); setBarcode(''); return; }
         showMsg('error', `Offline — "${code}" not found in cached catalog`);
       } else {
-        showMsg('error', `Barcode "${code}" not found!`);
+        showMsg('error', `QR code "${code}" not found!`);
       }
     }
     setBarcode('');
@@ -286,7 +286,7 @@ const POSPage = () => {
             <input
               ref={scanRef}
               className="pos-scan-input"
-              placeholder="🔍 Scan barcode or type product name..."
+              placeholder="🔍 Scan QR code or type product name..."
               value={barcode}
               onChange={e => { setBarcode(e.target.value); if (e.target.value) handleSearch(e.target.value); }}
               onKeyDown={handleScan}
@@ -378,7 +378,7 @@ const POSPage = () => {
             ) : (
               <div className="empty-state">
                 <span className="empty-state-icon">🔍</span>
-                <div className="empty-state-text">Scan a barcode or type a product name to search</div>
+                <div className="empty-state-text">Scan a QR code or type a product name to search</div>
               </div>
             )}
           </div>

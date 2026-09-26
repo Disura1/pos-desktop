@@ -222,7 +222,7 @@ const ReceiveStock = () => {
         // Pre-fill barcode in new item form
         setNewItem({ ...EMPTY_NEW_ITEM, barcode: val, skuAuto: false });
         showMsg(
-          `Barcode "${val}" not found — fill in the new item details below`,
+          `QR code "${val}" not found — fill in the new item details below`,
           "error",
         );
       } else {
@@ -343,7 +343,7 @@ const ReceiveStock = () => {
       return;
     }
     if (!newItem.barcode) {
-      showMsg("Barcode is required", "error");
+      showMsg("QR code is required", "error");
       return;
     }
     if (parseFloat(newItem.basePrice) <= 0) {
@@ -458,7 +458,7 @@ const ReceiveStock = () => {
         }}
       >
         {[
-          { key: "scan", label: "📷 Scan Barcode" },
+          { key: "scan", label: "📷 Scan QR Code" },
           { key: "search", label: "🔍 Search by Name / SKU" },
         ].map((m) => (
           <button
@@ -498,14 +498,14 @@ const ReceiveStock = () => {
           {mode === "scan" && (
             <div className="card" style={{ marginBottom: 16 }}>
               <div className="card-title" style={{ marginBottom: 12 }}>
-                Scan Barcode
+                Scan QR Code
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <input
                   ref={scanRef}
                   className="form-control"
                   style={{ flex: 1, fontSize: 15, letterSpacing: 1 }}
-                  placeholder="Scan or type barcode and press Enter..."
+                  placeholder="Scan or type QR code and press Enter..."
                   value={scanInput}
                   onChange={(e) => setScanInput(e.target.value)}
                   onKeyDown={handleScanKey}
@@ -542,7 +542,7 @@ const ReceiveStock = () => {
                   ref={searchRef}
                   className="form-control"
                   style={{ flex: 1 }}
-                  placeholder="Product name, SKU or barcode..."
+                  placeholder="Product name, SKU or QR code..."
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={handleSearchKey}
@@ -602,7 +602,7 @@ const ReceiveStock = () => {
                         SKU: <strong>{row.sku}</strong>
                         {row.size ? ` · Size: ${row.size}` : ""}
                         {row.color ? ` · ${row.color}` : ""}
-                        {row.barcode ? ` · Barcode: ${row.barcode}` : ""}
+                        {row.barcode ? ` · QR code: ${row.barcode}` : ""}
                       </div>
                       <div style={{ fontSize: 12, marginTop: 3 }}>
                         This branch:{" "}
@@ -853,7 +853,7 @@ const ReceiveStock = () => {
                   className="form-label"
                   style={{ display: "flex", justifyContent: "space-between" }}
                 >
-                  <span>Barcode *</span>
+                  <span>QR Code *</span>
                   {!scannedBarcode && (
                     <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                       Scan item or leave to use SKU
@@ -867,7 +867,7 @@ const ReceiveStock = () => {
                   onChange={(e) =>
                     setNewItem({ ...newItem, barcode: e.target.value })
                   }
-                  placeholder="Scan barcode or auto-filled from SKU"
+                  placeholder="Scan QR code or auto-filled from SKU"
                 />
                 {newItem.sku && newItem.barcode !== newItem.sku && (
                   <button
@@ -886,7 +886,7 @@ const ReceiveStock = () => {
                       setNewItem({ ...newItem, barcode: newItem.sku })
                     }
                   >
-                    Use SKU as barcode ({newItem.sku})
+                    Use SKU as QR code ({newItem.sku})
                   </button>
                 )}
               </div>
@@ -1131,7 +1131,7 @@ const ReceiveStock = () => {
                 </span>
                 <div className="empty-state-text">
                   {mode === "scan"
-                    ? "Scan a barcode to find the product"
+                    ? "Scan a QR code to find the product"
                     : "Search and select a product to receive stock"}
                 </div>
               </div>

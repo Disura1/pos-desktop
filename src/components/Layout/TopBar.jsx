@@ -19,7 +19,7 @@ const PAGE_TITLES = {
   'transfer-stock':    { title: 'Transfer Stock',    subtitle: 'Move stock between branches' },
   'manager-reports':   { title: 'Branch Reports',    subtitle: 'Sales performance' },
   'product-search':    { title: 'Product Search',    subtitle: 'Search products and variants' },
-  'label-printer':     { title: 'Print Labels',      subtitle: 'Generate and print barcode labels' },
+  'label-printer':     { title: 'Print Labels',      subtitle: 'Generate and print QR code labels' },
   'pos':               { title: 'Point of Sale',     subtitle: 'Process sales and checkout' },
   'cashier-history':   { title: 'Sales History',     subtitle: 'Recent transactions' },
   'cashier-products':  { title: 'Product Catalog',   subtitle: 'Browse products' },

@@ -194,7 +194,7 @@ const EditVariantModal = ({
               alignItems: "center",
             }}
           >
-            <span>Barcode *</span>
+            <span>QR Code *</span>
             {form.sku && form.barcode !== form.sku && (
               <button
                 type="button"
@@ -202,7 +202,7 @@ const EditVariantModal = ({
                 style={{ fontSize: 11 }}
                 onClick={() => setForm({ ...form, barcode: form.sku })}
               >
-                🔄 Use SKU as barcode
+                🔄 Use SKU as QR code
               </button>
             )}
           </label>
@@ -211,7 +211,7 @@ const EditVariantModal = ({
             style={{ fontFamily: "monospace" }}
             value={form.barcode || ""}
             onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-            placeholder="Scan or type barcode"
+            placeholder="Scan or type QR code"
           />
         </div>
 
@@ -349,7 +349,7 @@ const ProductSearch = () => {
 
   const handleSaveVariant = async (form) => {
     if (!form?.sku || !form?.barcode) {
-      showMsg("SKU and Barcode are required", "error");
+      showMsg("SKU and QR code are required", "error");
       return;
     }
     setEditVariantSaving(true);
@@ -467,7 +467,7 @@ const ProductSearch = () => {
               <thead>
                 <tr>
                   <th>SKU</th>
-                  <th>Barcode</th>
+                  <th>QR Code</th>
                   <th>Size</th>
                   <th>Color</th>
                   <th>Variant Price</th>
@@ -632,7 +632,7 @@ const ProductSearch = () => {
           ref={inputRef}
           className="form-control"
           style={{ flex: 1, fontSize: 15 }}
-          placeholder="Search by product name, SKU or barcode..."
+          placeholder="Search by product name, SKU or QR code..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -669,7 +669,7 @@ const ProductSearch = () => {
         <div className="empty-state">
           <span className="empty-state-icon">🔍</span>
           <div className="empty-state-text">
-            Type a product name, SKU or barcode and press Search
+            Type a product name, SKU or QR code and press Search
           </div>
         </div>
       )}

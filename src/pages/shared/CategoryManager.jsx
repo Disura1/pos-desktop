@@ -145,7 +145,7 @@ const ManagerAddProductModal = ({
       return;
     }
     if (!form.barcode) {
-      showMsg("Barcode is required — use SKU or scan", "error");
+      showMsg("QR code is required — use SKU or scan", "error");
       return;
     }
     setSaving(true);
@@ -406,7 +406,7 @@ const ManagerAddProductModal = ({
               className="form-label"
               style={{ display: "flex", justifyContent: "space-between" }}
             >
-              <span>Barcode *</span>
+              <span>QR Code *</span>
               <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                 Scan item or use SKU
               </span>
@@ -416,7 +416,7 @@ const ManagerAddProductModal = ({
               style={{ fontFamily: "monospace" }}
               value={form.barcode}
               onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-              placeholder="Scan barcode or auto-filled from SKU"
+              placeholder="Scan QR code or auto-filled from SKU"
             />
             {form.sku && form.barcode !== form.sku && (
               <button
@@ -433,7 +433,7 @@ const ManagerAddProductModal = ({
                 }}
                 onClick={() => setForm({ ...form, barcode: form.sku })}
               >
-                Use SKU as barcode ({form.sku})
+                Use SKU as QR code ({form.sku})
               </button>
             )}
           </div>
@@ -523,7 +523,7 @@ const ManagerAddVariantModal = ({
       return;
     }
     if (!form.barcode) {
-      showMsg("Barcode is required", "error");
+      showMsg("QR code is required", "error");
       return;
     }
     if (existingVariants.some((v) => v.sku === form.sku)) {
@@ -684,7 +684,7 @@ const ManagerAddVariantModal = ({
             className="form-label"
             style={{ display: "flex", justifyContent: "space-between" }}
           >
-            <span>Barcode *</span>
+            <span>QR Code *</span>
             <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
               Scan item or use SKU
             </span>
@@ -711,7 +711,7 @@ const ManagerAddVariantModal = ({
               }}
               onClick={() => setForm({ ...form, barcode: form.sku })}
             >
-              Use SKU as barcode ({form.sku})
+              Use SKU as QR code ({form.sku})
             </button>
           )}
         </div>
@@ -826,7 +826,7 @@ const EditVariantModal = ({ data, productName, otherSkus, onClose, onSave, savin
 
         <div className="form-group">
           <label className="form-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span>Barcode *</span>
+            <span>QR Code *</span>
             {form.sku && form.barcode !== form.sku && (
               <button
                 type="button"
@@ -834,7 +834,7 @@ const EditVariantModal = ({ data, productName, otherSkus, onClose, onSave, savin
                 style={{ fontSize: 11 }}
                 onClick={() => setForm({ ...form, barcode: form.sku })}
               >
-                🔄 Use SKU as barcode
+                🔄 Use SKU as QR code
               </button>
             )}
           </label>
@@ -843,7 +843,7 @@ const EditVariantModal = ({ data, productName, otherSkus, onClose, onSave, savin
             style={{ fontFamily: "monospace" }}
             value={form.barcode || ""}
             onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-            placeholder="Scan or type barcode"
+            placeholder="Scan or type QR code"
           />
         </div>
 
@@ -1030,7 +1030,7 @@ const CategoryManager = () => {
 
   const handleSaveVariant = async () => {
     if (!variantData.sku || !variantData.barcode) {
-      showMsg("SKU and Barcode are required", "error");
+      showMsg("SKU and QR code are required", "error");
       return;
     }
     if (variants.some((v) => v.sku === variantData.sku)) {
@@ -1061,7 +1061,7 @@ const CategoryManager = () => {
 
   const handleSaveVariantModal = async (form) => {
     if (!form?.sku || !form?.barcode) {
-      showMsg("SKU and Barcode are required", "error"); return;
+      showMsg("SKU and QR code are required", "error"); return;
     }
     if (variants.some((v) => v.id !== form.id && v.sku === form.sku)) {
       showMsg(`SKU "${form.sku}" is already used by another variant`, "error"); return;
@@ -1306,7 +1306,7 @@ const CategoryManager = () => {
             <thead>
               <tr>
                 <th>SKU</th>
-                <th>Barcode</th>
+                <th>QR Code</th>
                 <th>Size</th>
                 <th>Color</th>
                 <th>Variant Price</th>

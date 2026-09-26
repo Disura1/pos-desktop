@@ -94,7 +94,7 @@ const LabelPrinter = () => {
       setTimeout(() => scanRef.current?.focus(), 100);
     } catch (err) {
       if (err.response?.status === 404) {
-        showMsg(`Barcode "${val}" not found in system`, "error");
+        showMsg(`QR code "${val}" not found in system`, "error");
       } else {
         showMsg("Scan error: " + err.message, "error");
       }
@@ -187,7 +187,7 @@ const LabelPrinter = () => {
           <div style={{ display: "flex", gap: 0, marginBottom: 16, border: "1.5px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden", width: "100%" }}>
             {[
               { key: "search", label: "🔍 Search" },
-              { key: "scan",   label: "📷 Scan Barcode" },
+              { key: "scan",   label: "📷 Scan QR Code" },
             ].map((m) => (
               <button
                 key={m.key}
@@ -218,7 +218,7 @@ const LabelPrinter = () => {
                 <input
                   ref={searchRef}
                   className="form-control"
-                  placeholder="Product name, SKU or barcode..."
+                  placeholder="Product name, SKU or QR code..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -271,7 +271,7 @@ const LabelPrinter = () => {
                   ref={scanRef}
                   className="form-control"
                   style={{ fontFamily: "monospace", letterSpacing: 1 }}
-                  placeholder="Scan barcode and press Enter..."
+                  placeholder="Scan QR code and press Enter..."
                   value={scanInput}
                   onChange={(e) => setScanInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleScan()}
@@ -344,7 +344,7 @@ const LabelPrinter = () => {
                           {" · "}{fmtCurrency(v.variant_price || selectedProduct.base_price)}
                         </div>
                         <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "monospace" }}>
-                          Barcode: {v.barcode || v.sku}
+                          QR Code: {v.barcode || v.sku}
                         </div>
                       </div>
                       <div>
