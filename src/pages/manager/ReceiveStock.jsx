@@ -141,6 +141,7 @@ const ReceiveStock = () => {
 
 
   const [unitCost, setUnitCost] = useState("");
+  const [unitCostError, setUnitCostError] = useState("");
 
   const scanRef = useRef(null);
   const searchRef = useRef(null);
@@ -279,6 +280,11 @@ const ReceiveStock = () => {
   // ── Receive stock ──
   const handleReceive = async () => {
     if (!found || !quantity || parseInt(quantity) <= 0) return;
+    if (!unitCost || parseFloat(unitCost) <= 0) {
+      setUnitCostError("Unit Cost is required");
+      return;
+    }
+    setUnitCostError("");
     setSaving(true);
     try {
       await receiveStock({
@@ -350,6 +356,11 @@ const ReceiveStock = () => {
       showMsg("Base price must be greater than 0", "error");
       return;
     }
+    if (!unitCost || parseFloat(unitCost) <= 0) {
+      setUnitCostError("Unit Cost is required");
+      return;
+    }
+    setUnitCostError("");
     if (!quantity || parseInt(quantity) < 0) {
       showMsg("Please enter a quantity to receive (0 or more)", "error");
       return;
@@ -905,19 +916,20 @@ const ReceiveStock = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Unit Cost (optional)</label>
+                <label className="form-label">Unit Cost *</label>
                 <input
-                  className="form-control"
+                  className={`form-control${unitCostError ? " is-invalid" : ""}`}
                   type="number"
                   min="0"
                   step="0.01"
                   value={unitCost}
-                  onChange={(e) => setUnitCost(e.target.value)}
+                  onChange={(e) => { setUnitCost(e.target.value); setUnitCostError(""); }}
                   placeholder="What did you pay per unit for this batch?"
                 />
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                  Used to calculate profit reports. Leave blank if unknown.
-                </div>
+                {unitCostError
+                  ? <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{unitCostError}</div>
+                  : <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>Used to calculate profit reports.</div>
+                }
               </div>
 
               {/* Label copies */}
@@ -1068,19 +1080,20 @@ const ReceiveStock = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Unit Cost (optional)</label>
+                  <label className="form-label">Unit Cost *</label>
                   <input
-                    className="form-control"
+                    className={`form-control${unitCostError ? " is-invalid" : ""}`}
                     type="number"
                     min="0"
                     step="0.01"
                     value={unitCost}
-                    onChange={(e) => setUnitCost(e.target.value)}
+                    onChange={(e) => { setUnitCost(e.target.value); setUnitCostError(""); }}
                     placeholder="What did you pay per unit for this batch?"
                   />
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                    Used to calculate profit reports. Leave blank if unknown.
-                  </div>
+                  {unitCostError
+                    ? <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{unitCostError}</div>
+                    : <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>Used to calculate profit reports.</div>
+                  }
                 </div>
 
                 <div className="form-group">
