@@ -215,20 +215,29 @@ const EditVariantModal = ({
           />
         </div>
 
-        <div className="form-group">
-          <label className="form-label">
-            Variant Price (leave blank to use base price)
-          </label>
-          <input
-            className="form-control"
-            type="number"
-            step="0.01"
-            value={form.variant_price || ""}
-            onChange={(e) =>
-              setForm({ ...form, variant_price: e.target.value })
-            }
-            placeholder="Optional override"
-          />
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Our Selling Price (LKR)</label>
+            <input
+              className="form-control"
+              type="number"
+              step="0.01"
+              value={form.variant_price || ""}
+              onChange={(e) => setForm({ ...form, variant_price: e.target.value })}
+              placeholder="Leave blank = base price"
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Stated Price (LKR)</label>
+            <input
+              className="form-control"
+              type="number"
+              step="0.01"
+              value={form.stated_price || ""}
+              onChange={(e) => setForm({ ...form, stated_price: e.target.value })}
+              placeholder="Original / market price for label"
+            />
+          </div>
         </div>
 
         <div className="modal-footer">
@@ -578,6 +587,7 @@ const ProductSearch = () => {
                                 color: v.color || "",
                                 barcode: v.barcode || "",
                                 variant_price: v.variant_price || "",
+                                stated_price: v.stated_price || "",
                               })
                             }
                           >

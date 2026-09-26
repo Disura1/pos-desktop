@@ -8,21 +8,42 @@ const esc = (str) => String(str || '')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#039;');
 
+// Amount without "LKR" prefix — used for individual line item figures
+const fmtAmt = (val) =>
+  parseFloat(val || 0).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 export const buildReceiptHtml = ({ sale, items, branchName, cashierName }) => {
   const receiptNo = sale.receipt_number || `#${sale.id}`;
   const address   = sale.branch_address || '';
   const phone     = sale.branch_phone   || '';
 
-  const itemRows = items.map(item => `
-    <div style="display:flex;justify-content:space-between;margin:3px 0;font-size:11px;">
-      <span>${esc(item.product_name)}${item.size ? ` (${esc(item.size)})` : ''}${item.color ? ` / ${esc(item.color)}` : ''}</span>
-      <span>x${parseInt(item.quantity) || 0}</span>
+  // Customer saving = sum of (stated_price - unit_price) * qty for each item
+  const itemSaving = items.reduce((sum, item) => {
+    const stated = parseFloat(item.stated_price || 0);
+    const selling = parseFloat(item.unit_price || 0);
+    if (stated > selling) {
+      return sum + (stated - selling) * parseInt(item.quantity || 0);
+    }
+    return sum;
+  }, 0);
+  const discountSaving = parseFloat(sale.discount_amount || 0);
+  const totalSaving = itemSaving + discountSaving;
+
+  const itemRows = items.map(item => {
+    const qty = parseInt(item.quantity) || 0;
+    const unitPrice = parseFloat(item.unit_price || 0);
+    const stated = parseFloat(item.stated_price || 0);
+    const showStated = stated > unitPrice;
+    return `
+    <div style="margin:4px 0 2px;">
+      <div style="font-size:11px;font-weight:700;">${esc(item.product_name)}${item.size ? ` (${esc(item.size)})` : ''}${item.color ? ` / ${esc(item.color)}` : ''}</div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#444;">
+        <span>${showStated ? `<span style="text-decoration:line-through;color:#999;">${fmtAmt(stated)}</span>  ` : ''}${fmtAmt(unitPrice)} × ${qty}</span>
+        <span>${fmtAmt(unitPrice * qty)}</span>
+      </div>
     </div>
-    <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:11px;">
-      <span style="color:#666;">${esc(item.sku)}</span>
-      <span>${fmtCurrency(item.total_price)}</span>
-    </div>
-  `).join('');
+  `;
+  }).join('');
 
   return `
     <div style="text-align:center;margin-bottom:8px;">
@@ -48,7 +69,12 @@ export const buildReceiptHtml = ({ sale, items, branchName, cashierName }) => {
     <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:900;margin-top:4px;">
       <span>TOTAL</span><span>${fmtCurrency(sale.total_amount)}</span>
     </div>
+    ${totalSaving > 0 ? `
+    <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:6px;font-weight:700;color:#000;">
+      <span>You saved</span><span>${fmtCurrency(totalSaving)}</span>
+    </div>` : ''}
     ${parseFloat(sale.change_amount) > 0 ? `
+    <div style="border-top:1px dashed #000;margin:6px 0;"></div>
     <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:4px;color:#555;">
       <span>Cash Tendered</span><span>${fmtCurrency(sale.amount_tendered)}</span>
     </div>

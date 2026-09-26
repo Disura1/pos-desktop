@@ -204,7 +204,7 @@ const POSPage = () => {
             total_amount: payload.total, amount_tendered: payload.amountTendered,
             change_amount: payload.amountTendered - payload.total,
           },
-          items: cart.map(i => ({ product_name: i.name, sku: i.sku, size: i.size, color: i.color, quantity: i.quantity, total_price: i.price * i.quantity })),
+          items: cart.map(i => ({ product_name: i.name, sku: i.sku, size: i.size, color: i.color, quantity: i.quantity, unit_price: i.price, total_price: i.price * i.quantity, stated_price: i.stated_price || null })),
           branchName: user.branchName,
           cashierName: user.fullName || user.username,
         });

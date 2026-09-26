@@ -101,6 +101,7 @@ const EMPTY_NEW_ITEM = {
   productName: "",
   categoryId: "",
   basePrice: "",
+  stated_price: "",
   size: "",
   color: "",
   barcode: "",
@@ -271,6 +272,7 @@ const ReceiveStock = () => {
       color: row.color,
       barcode: row.barcode,
       price: row.price,
+      stated_price: row.stated_price || null,
       stock_qty: row.stock_qty,
     });
     setSearchResults([]);
@@ -313,6 +315,7 @@ const ReceiveStock = () => {
               size: found.size,
               color: found.color,
               price: found.price || found.base_price,
+              stated_price: found.stated_price || null,
               copies,
             },
           ],
@@ -380,6 +383,7 @@ const ReceiveStock = () => {
         color: newItem.color || null,
         barcode: newItem.barcode,
         variant_price: null,
+        stated_price: newItem.stated_price ? parseFloat(newItem.stated_price) : null,
         branch_id: branchId,
         quantity: parseInt(quantity) || 0,
         unit_cost: unitCost || null,
@@ -404,6 +408,7 @@ const ReceiveStock = () => {
               size: newItem.size,
               color: newItem.color,
               price: newItem.basePrice,
+              stated_price: newItem.stated_price || null,
               copies: parseInt(quantity) || 1,
             },
           ],
@@ -753,18 +758,29 @@ const ReceiveStock = () => {
               </div>
 
               {/* Price */}
-              <div className="form-group">
-                <label className="form-label">Base Price (LKR) *</label>
-                <input
-                  className="form-control"
-                  type="number"
-                  step="0.01"
-                  value={newItem.basePrice}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, basePrice: e.target.value })
-                  }
-                  placeholder="0.00"
-                />
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Our Selling Price (LKR) *</label>
+                  <input
+                    className="form-control"
+                    type="number"
+                    step="0.01"
+                    value={newItem.basePrice}
+                    onChange={(e) => setNewItem({ ...newItem, basePrice: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Stated Price (LKR)</label>
+                  <input
+                    className="form-control"
+                    type="number"
+                    step="0.01"
+                    value={newItem.stated_price}
+                    onChange={(e) => setNewItem({ ...newItem, stated_price: e.target.value })}
+                    placeholder="Original / market price for label"
+                  />
+                </div>
               </div>
 
               {/* SKU */}

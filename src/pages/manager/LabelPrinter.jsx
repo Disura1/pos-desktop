@@ -88,6 +88,7 @@ const LabelPrinter = () => {
         size: data.size,
         color: data.color,
         price: data.price || data.base_price,
+        stated_price: data.stated_price || null,
       });
       setScanInput("");
       showMsg(`✅ "${data.name}" (${data.sku}) added to queue`);
@@ -141,6 +142,7 @@ const LabelPrinter = () => {
       size: variant.size,
       color: variant.color,
       price: variant.variant_price || product.base_price,
+      stated_price: variant.stated_price || null,
     });
     showMsg(`"${variant.sku}" added to print queue`);
   };

@@ -55,7 +55,8 @@ const buildLabelBlock = async (item) => {
     }
   }
 
-  const price = parseFloat(item.price || 0).toLocaleString('en-LK', {
+  const displayPrice = item.stated_price || item.price || 0;
+  const price = parseFloat(displayPrice).toLocaleString('en-LK', {
     minimumFractionDigits: 2,
   });
   const sizeColor = [item.size || '', item.color || '']
